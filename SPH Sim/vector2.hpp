@@ -48,6 +48,12 @@ namespace up
 			return Vec2(-y, x);
 		}
 
+		bool operator==(const Vec2& v)
+		{
+			if (x == v.x && y == v.y) return true;
+			else return false;
+		}
+
 		void operator+=(const Vec2& v)
 		{
 			x += v.x;
@@ -100,6 +106,11 @@ namespace up
 	inline Vec2 operator*(const Vec2& v, float f)
 	{
 		return Vec2(f*v.x, f*v.y);
+	}
+
+	inline Vec2 operator/(const Vec2& v, float f)
+	{
+		return Vec2(v.x/f, v.y/f);
 	}
 
 	inline const Vec2 getMidPoint(const Vec2& v1, const Vec2& v2)
