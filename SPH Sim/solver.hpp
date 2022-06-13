@@ -20,32 +20,34 @@ struct cellGridIndexSort
 struct Solver
 {
 	//Solver constant parameters
-	static constexpr float STIFFNESS = 10.f;
+	static constexpr float STIFFNESS = 50.f;
 	static constexpr float PARTICLE_REST_DENSITY = 1.f;
-	static constexpr float PARTICLE_MASS = 10.f;
+	static constexpr float PARTICLE_MASS = 100.f;
 	static constexpr float KERNEL_SUPPORT = 20.f;
 	static constexpr float VISCOSITY = 5.f;
+	static constexpr float BOUND_DAMPING = -0.5f;
 	static constexpr float SIM_WIDTH = 1200.f;
 
 	static constexpr float CELLS_IN_X = SIM_WIDTH / KERNEL_SUPPORT;
 
-	Vec2 gravity = { 0.f, 1000.0f };
+	Vec2 GRAVITY = { 0.f, 100.0f };
 	vector<Particle> particles = {};
 
 	void update(float dt)
 	{
 		//SPH sim
-		//basicNeighborSearch();
-		compressedNeighborSearch();
-		//calculateDensityPressure();
-		//calculateForces();
-		//updatePositions(dt, true);
+		basicNeighborSearch();
+		//compressedNeighborSearch();
+		calculateDensityPressure();
+		calculateForces();
+		handleBoundaries();
+		updatePositions(dt, true);
 		
 		//Basic sim
-		applyGravity();
-		handleBoundaries();
-		handleCollisionsBasic();
-		updatePositions(dt, false);
+		//applyGravity();
+		//handleBoundaries();
+		//handleCollisionsBasic();
+		//updatePositions(dt, false);
 		
 
 	}
@@ -59,12 +61,10 @@ struct Solver
 
 			for (auto &potentialNeighborParticle : particles)
 			{
-				if (currentParticle.position_current == potentialNeighborParticle.position_current) continue;
-
 				Vec2 neighborDistance = currentParticle.position_current - potentialNeighborParticle.position_current;
 				float distance = neighborDistance.length();
 
-				//if (distance < 2 * H) currentParticle.neighbors.push_back(potentialNeighborParticle);
+				if (distance < 2 * KERNEL_SUPPORT) currentParticle.neighbors.push_back(potentialNeighborParticle);
 			}
 		}
 	}
@@ -93,12 +93,10 @@ struct Solver
 		{
 			if (pi.isBoundary) continue;
 
-			pi.density = 0.f;
+			pi.density = PARTICLE_REST_DENSITY;
 
 			for (auto &pj : particles)
 			{
-				if (pi.position_current == pj.position_current) continue;
-
 				Vec2 distanceVector = pj.position_current - pi.position_current;
 				float distance = distanceVector.length();
 
@@ -110,7 +108,7 @@ struct Solver
 				}
 			}
 			
-			pi.pressure = max(STIFFNESS * ( (pi.density / PARTICLE_REST_DENSITY) - 1), 0.f);
+			pi.pressure = max(STIFFNESS * ((pi.density / PARTICLE_REST_DENSITY) - 1.0f), 0.f);
 		}
 	}
 
@@ -153,8 +151,6 @@ struct Solver
 
 			for (auto &pj : particles)
 			{
-				if (pi.position_current == pj.position_current) continue;
-
 				Vec2 distanceVector = pj.position_current - pi.position_current;
 				Vec2 positionDiff = pi.position_current - pj.position_current;
 				Vec2 velocityDiff = pi.velocity - pj.velocity;
@@ -164,16 +160,15 @@ struct Solver
 				//Check if particles are neighbors
 				if (distance < 2 * KERNEL_SUPPORT)
 				{
-					distanceVector.normalize();
 					// compute pressure force contribution
-					fpressure += -PARTICLE_MASS * (pi.pressure / pow(pi.density, 2) + pj.pressure / pow(pj.density, 2)) * kernelFirstDerivativeFunction(distanceVector, distance);
+					fpressure -= -PARTICLE_MASS * (pi.pressure / pow(pi.density, 2) + pj.pressure / pow(pj.density, 2)) * kernelFirstDerivativeFunction(distanceVector, distance);
 					// compute viscosity force contribution (non-pressure acceleration)
-					fviscosity += PARTICLE_MASS / pj.density * (velocityDiff.dot(positionDiff) / (positionDiff.dot(positionDiff) + 0.01f* pow(KERNEL_SUPPORT,2))) * kernelFirstDerivativeFunction(distanceVector, distance);
+					if(!pj.isBoundary) fviscosity -= PARTICLE_MASS / pj.density * (velocityDiff.dot(positionDiff) / (positionDiff.dot(positionDiff) + 0.01f* pow(KERNEL_SUPPORT,2))) * kernelFirstDerivativeFunction(distanceVector, distance);
 				}
 			}
 
 			//Sum non-pressure accelerations and pressure accelerations
-			pi.forces = fpressure + (2 * VISCOSITY * fviscosity) + PARTICLE_MASS * gravity;
+			pi.forces = fpressure + (2 * VISCOSITY * fviscosity) + GRAVITY;
 		}
 	}
 
@@ -192,7 +187,7 @@ struct Solver
 	{
 		for (auto &p : particles)
 		{
-			if(!p.isBoundary) p.accelerate(gravity);
+			if(!p.isBoundary) p.accelerate(GRAVITY);
 		}
 	}
 
@@ -218,10 +213,11 @@ struct Solver
 			const Vec2 to_obj = p.position_current - centerPosition;
 			const float dist = to_obj.length();
 
-			if (dist > radius - p.radius) {
+			if (dist > radius - p.radius)
+			{	
 				const Vec2 n = { to_obj.x / dist, to_obj.y / dist };
+				p.velocity *= BOUND_DAMPING;
 				p.position_current = centerPosition + n * (radius - p.radius);
-				p.forces = n;
 			}
 		}
 	}

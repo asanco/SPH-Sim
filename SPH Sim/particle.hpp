@@ -39,7 +39,7 @@ struct Particle
 	// Explicit Euler integration
 	void updatePositionEuler(float dt)
 	{
-		velocity += dt * forces / 10.f;
+		velocity += dt * forces;
 		position_current += dt * velocity;
 	}
 

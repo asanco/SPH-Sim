@@ -24,7 +24,7 @@ namespace up
 		float length() const
 		{
 			if (m_length < 0.0f)
-				m_length = sqrt(x*x + y * y);
+				m_length = sqrt(x * x + y * y);
 			return m_length;
 		}
 

@@ -11,6 +11,7 @@ const float particle_starting_y = win_height / 2;
 const float dt = 0.01f;
 
 bool update = true;
+bool stepUpdate = false;
 
 void RenderSimulation(sf::RenderWindow& window, Solver solver) 
 {
@@ -53,6 +54,8 @@ void ProcessEvents(sf::RenderWindow& window, Solver& solver)
 			if (event.key.code == sf::Keyboard::A) addParticle(solver);
 			else if (event.key.code == sf::Keyboard::U) update = !update;
 			else if (event.key.code == sf::Keyboard::R) solver.particles.clear();
+			else if (event.key.code == sf::Keyboard::Right) update = true;
+			else if (event.key.code == sf::Keyboard::Space) stepUpdate = !stepUpdate;
 			else if (event.key.code == sf::Keyboard::P) {
 				for (auto &pj : solver.particles)
 					std::cout << ' ' << to_string(pj.gridCellIndex);
@@ -105,6 +108,8 @@ int main()
 		if (solver.particles.size() > 0) {
 			screenText.append("\nParticle 1\nPosition: " + to_string(solver.particles[0].position_current.x) + "," + to_string(solver.particles[0].position_current.y));
 			screenText.append("\nVelocity: " + to_string(solver.particles[0].velocity.x) + "," + to_string(solver.particles[0].velocity.y));
+			screenText.append("\nDensity: " + to_string(solver.particles[0].density));
+			screenText.append("\nPressure: " + to_string(solver.particles[0].pressure));
 			screenText.append("\nForces: " + to_string(solver.particles[0].forces.x) + "," + to_string(solver.particles[0].forces.y));
 			screenText.append("\nNeighbors: " + to_string(solver.particles[0].neighbors.size()));
 			screenText.append("\nParticle cell index: " + to_string(solver.particles[0].gridCellIndex));
@@ -121,6 +126,7 @@ int main()
 		window.draw(text);
 
 		if(update) solver.update(dt);
+		if(stepUpdate) update = false;
 		RenderSimulation(window, solver);
 		
 		window.display();
