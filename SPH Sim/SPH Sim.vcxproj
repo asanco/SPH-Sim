@@ -135,6 +135,7 @@
     <ClCompile Include="solver.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="compactCell.hpp" />
     <ClInclude Include="vector2.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

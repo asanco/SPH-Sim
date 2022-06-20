@@ -12,17 +12,28 @@ const float dt = 0.01f;
 
 bool update = true;
 bool stepUpdate = false;
+bool showInfo = false;
 
 void RenderSimulation(sf::RenderWindow& window, Solver solver) 
 {
+	sf::Font font;
+	if (!font.loadFromFile("../res/font.ttf")) std::cout << "Error loading font" << std::endl;
+
 	for (auto &p : solver.particles)
 	{
-		sf::CircleShape shape(p.radius);
+		sf::CircleShape shape(p->radius);
 		
-		shape.setFillColor(p.color);
-		shape.setPosition(p.position_current.x - p.radius, p.position_current.y - p.radius);
+		shape.setFillColor(p->color);
+		shape.setPosition(p->position_current.x - p->radius, p->position_current.y - p->radius);
 
 		window.draw(shape);
+		
+		if (showInfo) {
+			sf::Text particleCellText(std::to_string(p->gridCellIndex), font, 12);
+			particleCellText.setFillColor(sf::Color::White);
+			particleCellText.setPosition(p->position_current.x, p->position_current.y);
+			window.draw(particleCellText);
+		}
 	}
 }
 
@@ -30,13 +41,17 @@ void addParticle(Solver& solver)
 {
 	sf::Color particleColor = sf::Color::Blue;
 
-	if (solver.particles.size() == 0) particleColor = sf::Color::Green;
-	solver.addParticle(particle_starting_x + 100, particle_starting_y, 10.0f, false, particleColor);
+	if (!solver.hasLiquidParticle) {
+		particleColor = sf::Color::Green;
+		solver.hasLiquidParticle = true;
+	}
+	solver.addParticle(particle_starting_x + 100, particle_starting_y, 5.0f, false, particleColor);
+
 }
 
 void addBoundaryParticle(Solver& solver, float positionX, float positionY)
 {
-	solver.addParticle(positionX, positionY, 10.0f, true, sf::Color::Magenta);
+	solver.addParticle(positionX, positionY, 5.0f, true, sf::Color::Magenta);
 }
 
 //Keyboard inputs
@@ -53,14 +68,13 @@ void ProcessEvents(sf::RenderWindow& window, Solver& solver)
 		case sf::Event::KeyPressed:
 			if (event.key.code == sf::Keyboard::A) addParticle(solver);
 			else if (event.key.code == sf::Keyboard::U) update = !update;
-			else if (event.key.code == sf::Keyboard::R) solver.particles.clear();
+			else if (event.key.code == sf::Keyboard::I) showInfo = !showInfo;
+			else if (event.key.code == sf::Keyboard::R) {
+				solver.particles.clear();
+				solver.initializeBoundaryParticles();
+			}
 			else if (event.key.code == sf::Keyboard::Right) update = true;
 			else if (event.key.code == sf::Keyboard::Space) stepUpdate = !stepUpdate;
-			else if (event.key.code == sf::Keyboard::P) {
-				for (auto &pj : solver.particles)
-					std::cout << ' ' << to_string(pj.gridCellIndex);
-				std::cout << '\n';
-			}
 			break;
 		case sf::Event::MouseButtonPressed:
 			if (event.mouseButton.button == sf::Mouse::Left) addBoundaryParticle(solver, (float) event.mouseButton.x, (float) event.mouseButton.y);
@@ -73,6 +87,13 @@ void ProcessEvents(sf::RenderWindow& window, Solver& solver)
 
 int main()
 {
+
+	float fps;
+
+	sf::Clock clock = sf::Clock::Clock();
+	sf::Time previousTime = clock.getElapsedTime();
+	sf::Time currentTime;
+
 	sf::RenderWindow window(sf::VideoMode(win_width, win_height), "SPH Solver", sf::Style::Default);
 	window.setFramerateLimit(60);
 
@@ -92,30 +113,35 @@ int main()
 	text.setFillColor(sf::Color::Black);
 	text.move(sf::Vector2f(20.0f, 20.f));
 
-	sf::Text particleIndexText;
-	particleIndexText.setFont(font);
-	particleIndexText.setCharacterSize(14);
-	particleIndexText.setFillColor(sf::Color::White);
-
 	Solver solver;
+
+	solver.initializeBoundaryParticles();
 
 	while (window.isOpen())
 	{
+		//Handle clock times
+		currentTime = clock.getElapsedTime();
+		fps = 1.0f / (currentTime.asSeconds() - previousTime.asSeconds());
+
 		//Get keyboard inputs
 		ProcessEvents(window, solver);
 
-		string screenText = "Number of particles:" + to_string(solver.particles.size()) + "\nUpdating: " + to_string(update);
-		if (solver.particles.size() > 0) {
-			screenText.append("\nParticle 1\nPosition: " + to_string(solver.particles[0].position_current.x) + "," + to_string(solver.particles[0].position_current.y));
-			screenText.append("\nVelocity: " + to_string(solver.particles[0].velocity.x) + "," + to_string(solver.particles[0].velocity.y));
-			screenText.append("\nDensity: " + to_string(solver.particles[0].density));
-			screenText.append("\nPressure: " + to_string(solver.particles[0].pressure));
-			screenText.append("\nForces: " + to_string(solver.particles[0].forces.x) + "," + to_string(solver.particles[0].forces.y));
-			screenText.append("\nNeighbors: " + to_string(solver.particles[0].neighbors.size()));
-			screenText.append("\nParticle cell index: " + to_string(solver.particles[0].gridCellIndex));
+		auto iterator = std::find_if(solver.particles.begin(), solver.particles.end(), [] (const std::shared_ptr<Particle>& p) { return p->color == sf::Color::Green; } );
 
-			particleIndexText.setString("Particle cell index: " + to_string(solver.particles[0].gridCellIndex));
-			particleIndexText.setPosition(sf::Vector2f(solver.particles[0].position_current.x, solver.particles[0].position_current.y));
+		std::string screenText = "Number of particles:" + std::to_string(solver.particles.size()) + "\nUpdating: " + (update ? "true" : "false");
+		screenText.append("\nFPS: " + std::to_string((int) floor(fps)));
+
+		if (iterator != solver.particles.end()) {
+			auto index = std::distance(solver.particles.begin(), iterator);
+			std::shared_ptr<Particle> p = solver.particles[index];
+
+			screenText.append("\nParticle 1\nPosition: " + std::to_string((int) p->position_current.x) + "," + std::to_string((int) p->position_current.y));
+			screenText.append("\nVelocity: " + std::to_string((int) p->velocity.x) + "," + std::to_string((int) p->velocity.y));
+			screenText.append("\nDensity: " + std::to_string(p->density));
+			screenText.append("\nPressure: " + std::to_string(p->pressure));
+			screenText.append("\nForces: " + std::to_string((int) p->forces.x) + "," + std::to_string((int) p->forces.y));
+			screenText.append("\nNeighbors: " + std::to_string(p->neighbors.size()));
+			screenText.append("\nParticle cell index: " + (p->gridCellIndex));
 		}
 		text.setString(screenText);
 
@@ -128,7 +154,8 @@ int main()
 		if(update) solver.update(dt);
 		if(stepUpdate) update = false;
 		RenderSimulation(window, solver);
-		
+		previousTime = currentTime;
+
 		window.display();
 	}
 
