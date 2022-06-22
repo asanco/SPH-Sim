@@ -43,8 +43,8 @@ struct Solver
 	void update(float dt)
 	{
 		//SPH sim
-		basicNeighborSearch();
-		//compressedNeighborSearch();
+		//basicNeighborSearch();
+		compressedNeighborSearchInit();
 		calculateDensityPressure();
 		calculateForces();
 		handleBoundaries();
@@ -79,7 +79,7 @@ struct Solver
 		}
 	}
 
-	void compressedNeighborSearch() 
+	void compressedNeighborSearchInit() 
 	{
 		compactCellArray.clear();
 
@@ -92,48 +92,33 @@ struct Solver
 			int gridCellCoordinateX = (int) floor((p->position_current.x - minPosX) / KERNEL_SUPPORT);
 			int gridCellCoordinateY = (int) floor((p->position_current.y - minPosY) / KERNEL_SUPPORT);
 
+			p->gridXCoordinate = gridCellCoordinateX;
+			p->gridYCoordinate = gridCellCoordinateY;
+
 			//Compute and store grid cell z-index
 			std::bitset<8> indexXValue = std::bitset<8>(gridCellCoordinateX);
 			std::bitset<8> indexYValue = std::bitset<8>(gridCellCoordinateY);
 
-			std::bitset<16> gridCellIndexBits;
-
-			gridCellIndexBits[0] = indexXValue[0];
-			gridCellIndexBits[1] = indexYValue[0];
-			gridCellIndexBits[2] = indexXValue[1];
-			gridCellIndexBits[3] = indexYValue[1];
-			gridCellIndexBits[4] = indexXValue[2];
-			gridCellIndexBits[5] = indexYValue[2];
-			gridCellIndexBits[6] = indexXValue[3];
-			gridCellIndexBits[7] = indexYValue[3];
-			gridCellIndexBits[8] = indexXValue[4];
-			gridCellIndexBits[9] = indexYValue[4];
-			gridCellIndexBits[10] = indexXValue[5];
-			gridCellIndexBits[11] = indexYValue[5];
-			gridCellIndexBits[12] = indexXValue[6];
-			gridCellIndexBits[13] = indexYValue[6];
-			gridCellIndexBits[14] = indexXValue[7];
-			gridCellIndexBits[15] = indexYValue[7];
-
-			p->gridCellIndex = (int) gridCellIndexBits.to_ulong();
+			p->gridCellIndex = toGridCellIndex(indexXValue, indexYValue);
 		}
-
 
 		//Sort particles by grid cell index
 		sort(particles.begin(), particles.end(), cellGridIndexSort());
 		
 		//Generate and fill the compact cell array
-		int marker = 1;
+		int marker = 0;
 		int scan = 0;
 		int currentCell = -1;
 
 		for (int i = 0; i<particles.size(); ++i)
 		{
 			std::shared_ptr<Particle> &p = particles[i];
-			
-			if (currentCell == p->gridCellIndex) {
-				marker = 0;
-				
+			p->neighbors.clear();
+
+			if (currentCell != p->gridCellIndex) {
+				marker = 1;
+				scan++;
+
 				CompactCell newCompactCell = {
 					i,
 					p->gridCellIndex
@@ -141,25 +126,62 @@ struct Solver
 
 				compactCellArray.push_back(newCompactCell);
 			}
-			else scan++;
 
 			currentCell = p->gridCellIndex;
-			marker = 1;
+			marker = 0;
 		}
 
+		compressedNeighborSearch();
+	}
+
+	void compressedNeighborSearch() {
 		//Neighbor search
+		//6: For each cell in the compact cell array
 		for (int i = 0; i < compactCellArray.size(); i++)
 		{
 			CompactCell currentCell = compactCellArray[i];
 			int cellIndex = currentCell.cell;
-
-			while (currentCell.cell == cellIndex)
-			{
-
-			}
 			
-		}
+			//For each sub-range
+			for (int j = -4; j < 5; j++)
+			{
+				int neighborCell = cellIndex + j;
 
+				auto iterator = std::find_if(compactCellArray.begin(), compactCellArray.end(), [&](CompactCell& c) { return c.cell == neighborCell; });
+				if (iterator != compactCellArray.end())
+				{
+					auto index = std::distance(compactCellArray.begin(), iterator);
+
+					int firstParticleIndex = compactCellArray[index].particle;
+					int lastParticleIndex = 0;
+
+					if (index >= compactCellArray.size() - 1) lastParticleIndex = particles.size() - 1;
+					else lastParticleIndex = compactCellArray[index + 1].particle;
+
+					//For each particle k in the computed particle range
+					for (int k = currentCell.particle; k < particles.size(); k++) 
+					{
+						std::shared_ptr<Particle> &currentParticle = particles[k];
+
+						if (currentParticle->gridCellIndex != cellIndex) break;
+
+						//For each particle l in the computed particle range
+						for (int l = firstParticleIndex; l < lastParticleIndex; l++)
+						{
+							std::shared_ptr<Particle> &potentialNeighborParticle = particles[l];
+
+							up::Vec2 neighborDistance = currentParticle->position_current - potentialNeighborParticle->position_current;
+							float distance = neighborDistance.length();
+
+							if (distance < 2 * KERNEL_SUPPORT)
+							{
+								currentParticle->neighbors.push_back(potentialNeighborParticle);
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
 	//Computes density
@@ -325,4 +347,71 @@ struct Solver
 			addParticle(posX, posY, 5.f, true, sf::Color::Magenta);
 		}
 	}
+
+	// Function to perform Ternary Search
+	int ternarySearch(int l, int r, int key, Particle ar[])
+	{
+		if (r >= l) {
+
+			// Find the mid1 and mid2
+			int mid1 = l + (r - l) / 3;
+			int mid2 = r - (r - l) / 3;
+
+			// Check if key is present at any mid
+			if (ar[mid1].gridCellIndex == key) {
+				return mid1;
+			}
+			if (ar[mid2].gridCellIndex == key) {
+				return mid2;
+			}
+
+			// Since key is not present at mid,
+			// check in which region it is present
+			// then repeat the Search operation
+			// in that region
+			if (key < ar[mid1].gridCellIndex) {
+
+				// The key lies in between l and mid1
+				return ternarySearch(l, mid1 - 1, key, ar);
+			}
+			else if (key > ar[mid2].gridCellIndex) {
+
+				// The key lies in between mid2 and r
+				return ternarySearch(mid2 + 1, r, key, ar);
+			}
+			else {
+
+				// The key lies in between mid1 and mid2
+				return ternarySearch(mid1 + 1, mid2 - 1, key, ar);
+			}
+		}
+
+		// Key not found
+		return -1;
+	}
+
+	int toGridCellIndex(std::bitset<8> indexXValue, std::bitset<8> indexYValue) {
+
+		std::bitset<16> gridCellIndexBits;
+
+		gridCellIndexBits[0] = indexXValue[0];
+		gridCellIndexBits[1] = indexYValue[0];
+		gridCellIndexBits[2] = indexXValue[1];
+		gridCellIndexBits[3] = indexYValue[1];
+		gridCellIndexBits[4] = indexXValue[2];
+		gridCellIndexBits[5] = indexYValue[2];
+		gridCellIndexBits[6] = indexXValue[3];
+		gridCellIndexBits[7] = indexYValue[3];
+		gridCellIndexBits[8] = indexXValue[4];
+		gridCellIndexBits[9] = indexYValue[4];
+		gridCellIndexBits[10] = indexXValue[5];
+		gridCellIndexBits[11] = indexYValue[5];
+		gridCellIndexBits[12] = indexXValue[6];
+		gridCellIndexBits[13] = indexYValue[6];
+		gridCellIndexBits[14] = indexXValue[7];
+		gridCellIndexBits[15] = indexYValue[7];
+
+		return (int) gridCellIndexBits.to_ulong();
+	}
+
 };

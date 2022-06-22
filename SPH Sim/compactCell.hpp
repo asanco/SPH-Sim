@@ -2,5 +2,5 @@
 struct CompactCell
 {
 	uint16_t particle;
-	uint16_t cell;
+	int cell;
 };
