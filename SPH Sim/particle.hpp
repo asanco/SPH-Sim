@@ -21,8 +21,6 @@ struct Particle
 	float pressure = 0.0f;
 
 	uint16_t gridCellIndex;
-	uint16_t gridXCoordinate;
-	uint16_t gridYCoordinate;
 
 	std::vector<std::shared_ptr<Particle>> neighbors = {};
 

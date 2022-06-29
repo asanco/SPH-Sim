@@ -130,6 +130,7 @@ int main()
 
 		std::string screenText = "Number of particles:" + std::to_string(solver.particles.size()) + "\nUpdating: " + (update ? "true" : "false");
 		screenText.append("\nFPS: " + std::to_string((int) floor(fps)));
+		screenText.append("\nNeighbor search time (ms): " + std::to_string(solver.elapsedTime.asMilliseconds()));
 
 		if (iterator != solver.particles.end()) {
 			auto index = std::distance(solver.particles.begin(), iterator);
@@ -141,7 +142,6 @@ int main()
 			screenText.append("\nPressure: " + std::to_string(p->pressure));
 			screenText.append("\nForces: " + std::to_string((int) p->forces.x) + "," + std::to_string((int) p->forces.y));
 			screenText.append("\nNeighbors: " + std::to_string(p->neighbors.size()));
-			screenText.append("\nParticle cell index: " + (p->gridCellIndex));
 		}
 		text.setString(screenText);
 
