@@ -45,13 +45,13 @@ void addParticle(Solver& solver)
 		particleColor = sf::Color::Green;
 		solver.hasLiquidParticle = true;
 	}
-	solver.addParticle(particle_starting_x + 100, particle_starting_y, 5.0f, false, particleColor);
+	solver.addParticle(particle_starting_x + 100, particle_starting_y, false, particleColor);
 
 }
 
 void addBoundaryParticle(Solver& solver, float positionX, float positionY)
 {
-	solver.addParticle(positionX, positionY, 5.0f, true, sf::Color::Magenta);
+	solver.addParticle(positionX, positionY, true, sf::Color::Magenta);
 }
 
 //Keyboard inputs
@@ -68,6 +68,7 @@ void ProcessEvents(sf::RenderWindow& window, Solver& solver)
 		case sf::Event::KeyPressed:
 			if (event.key.code == sf::Keyboard::A) addParticle(solver);
 			else if (event.key.code == sf::Keyboard::U) update = !update;
+			else if (event.key.code == sf::Keyboard::M) solver.initializeLiquidParticles(1000);
 			else if (event.key.code == sf::Keyboard::I) showInfo = !showInfo;
 			else if (event.key.code == sf::Keyboard::R) {
 				solver.particles.clear();
@@ -90,6 +91,7 @@ int main()
 
 	float fps;
 
+	Solver solver;
 	sf::Clock clock = sf::Clock::Clock();
 	sf::Time previousTime = clock.getElapsedTime();
 	sf::Time currentTime;
@@ -100,9 +102,9 @@ int main()
 	sf::RectangleShape background_outer(sf::Vector2f(win_width, win_height));
 	background_outer.setFillColor(sf::Color::White);
 
-	sf::CircleShape background_inner(200.0f);
+	sf::CircleShape background_inner(solver.radius);
 	background_inner.setFillColor(sf::Color::Black);
-	background_inner.setPosition(sf::Vector2f(win_width / 2 - 200, win_height / 2 - 200));
+	background_inner.setPosition(sf::Vector2f(solver.centerPosition.x - solver.radius, solver.centerPosition.y - solver.radius));
 
 	sf::Font font;
 	if (!font.loadFromFile("../res/font.ttf")) std::cout << "Error loading font" << std::endl;
@@ -112,8 +114,6 @@ int main()
 	text.setCharacterSize(26);
 	text.setFillColor(sf::Color::Black);
 	text.move(sf::Vector2f(20.0f, 20.f));
-
-	Solver solver;
 
 	solver.initializeBoundaryParticles();
 

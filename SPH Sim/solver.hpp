@@ -23,24 +23,27 @@ struct Solver
 	static constexpr float STIFFNESS = 50.f;
 	static constexpr float PARTICLE_REST_DENSITY = 1.f;
 	static constexpr float PARTICLE_MASS = 100.f;
-	static constexpr float KERNEL_SUPPORT = 10.f;
+	static constexpr float KERNEL_SUPPORT = 6.f;
 	static constexpr float VISCOSITY = 5.f;
 	static constexpr float BOUND_DAMPING = -0.5f;
 	static constexpr float SIM_WIDTH = 1200.f;
 	static constexpr float SIM_HEIGHT = 700.f;
+	static constexpr float PARTICLE_RADIUS = KERNEL_SUPPORT / 2;
 
-	static constexpr float radius = 200.0f;
+	static constexpr float radius = 300.0f;
 	static constexpr float CELLS_IN_X = radius * 2 / KERNEL_SUPPORT;
+
+	bool hasLiquidParticle = false;
+	const up::Vec2 centerPosition = { 600.0f, 350.0f };
 
 	float minPosX = centerPosition.x - radius;
 	float minPosY = centerPosition.y - radius;
 	float maxPosX = centerPosition.x + radius;
 	float maxPosY = centerPosition.y + radius;
 
-	bool hasLiquidParticle = false;
-	const up::Vec2 centerPosition = { 600.0f, 350.0f };
-
 	up::Vec2 GRAVITY = { 0.f, 100.0f };
+
+	std::string SPACE_FILLING_CURVE = "XYZ";
 
 	std::vector<std::shared_ptr<Particle>> particles = {};
 	std::vector<CompactCell> compactCellArray = {};
@@ -55,7 +58,7 @@ struct Solver
 		compressedNeighborSearchInit();
 		calculateDensityPressure();
 		calculateForces();
-		handleBoundaries();
+		//handleBoundaries();
 		updatePositions(dt, true);
 		
 		//Basic sim
@@ -63,8 +66,6 @@ struct Solver
 		//handleBoundaries();
 		//handleCollisionsBasic();
 		//updatePositions(dt, false);
-		
-
 	}
 
 	//Compares all particles with all other particles to find its neighbors
@@ -105,7 +106,14 @@ struct Solver
 			std::bitset<8> indexXValue = std::bitset<8>(gridCellCoordinateX);
 			std::bitset<8> indexYValue = std::bitset<8>(gridCellCoordinateY);
 
-			p->gridCellIndex = toGridCellIndex(indexXValue, indexYValue);
+			//XYZ curve
+			if (SPACE_FILLING_CURVE == "XYZ") p->gridCellIndex = gridCellCoordinateX + gridCellCoordinateY * CELLS_IN_X;
+
+			//Morton Z Space Filling curve
+			if (SPACE_FILLING_CURVE == "ZIndex") p->gridCellIndex = toGridCellIndex(indexXValue, indexYValue);
+
+			//Hilbert curve
+
 		}
 
 		//Sort particles by grid cell index
@@ -116,7 +124,7 @@ struct Solver
 		int scan = 0;
 		int currentCell = -1;
 
-		for (int i = 0; i<particles.size(); ++i)
+		for (size_t i = 0; i < particles.size(); ++i)
 		{
 			std::shared_ptr<Particle> &p = particles[i];
 			p->neighbors.clear();
@@ -143,12 +151,18 @@ struct Solver
 	void compressedNeighborSearch() {
 		//Neighbor search
 		//6: For each cell in the compact cell array
-		for (int i = 0; i < compactCellArray.size(); i++)
+		for (size_t i = 0; i < compactCellArray.size(); i++)
 		{
 			CompactCell currentCell = compactCellArray[i];
 			int cellIndex = currentCell.cell;
 
-			up::Vec2 cellIndexCartesian = toCartesianCoordinates(cellIndex);
+			up::Vec2 cellIndexCartesian;
+
+			//XYZ curve
+			if(SPACE_FILLING_CURVE == "XYZ") cellIndexCartesian = { (float) (cellIndex % (int) CELLS_IN_X), floor(cellIndex/CELLS_IN_X) };
+
+			//Morton z space filling curve
+			if (SPACE_FILLING_CURVE == "ZIndex") cellIndexCartesian = toCartesianCoordinates(cellIndex);
 
 			int xIndex = -1;
 			int yIndex = -1;
@@ -156,13 +170,17 @@ struct Solver
 			//For each sub-range
 			for (int j = 1; j < 10; j++)
 			{
-				int neighborCellIndex = toGridCellIndex(std::bitset<8>(cellIndexCartesian.x + xIndex), std::bitset<8>(cellIndexCartesian.y + yIndex));
+				int neighborCellIndex;
+
+				if (SPACE_FILLING_CURVE == "XYZ") neighborCellIndex = (cellIndexCartesian.x + xIndex) + (cellIndexCartesian.y + yIndex) * CELLS_IN_X;
+
+				if (SPACE_FILLING_CURVE == "ZIndex") neighborCellIndex = toGridCellIndex(std::bitset<8>((int) cellIndexCartesian.x + xIndex), std::bitset<8>((int) cellIndexCartesian.y + yIndex));
 
 				auto iterator = std::find_if(compactCellArray.begin(), compactCellArray.end(), [&](CompactCell& c) { return c.cell == neighborCellIndex; });
 
 				if (iterator != compactCellArray.end())
 				{
-					auto index = std::distance(compactCellArray.begin(), iterator);
+					size_t index = std::distance(compactCellArray.begin(), iterator);
 
 					int firstParticleIndex = compactCellArray[index].particle;
 					int lastParticleIndex = 0;
@@ -171,7 +189,7 @@ struct Solver
 					else lastParticleIndex = compactCellArray[index + 1].particle;
 
 					//For each particle k in the computed particle range
-					for (int k = currentCell.particle; k < particles.size(); k++) 
+					for (size_t k = currentCell.particle; k < particles.size(); k++) 
 					{
 						std::shared_ptr<Particle> &currentParticle = particles[k];
 
@@ -211,7 +229,7 @@ struct Solver
 		{
 			if (pi->isBoundary) continue;
 
-			pi->density = PARTICLE_REST_DENSITY;
+			pi->density = 0;
 
 			for (auto &pj : pi->neighbors)
 			{
@@ -302,12 +320,12 @@ struct Solver
 		}
 	}
 
-	void addParticle(float starting_x, float starting_y, float radius, bool isBoundary, sf::Color color) {
+	void addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color) {
 		Particle newParticle = {
 			{starting_x, starting_y},
 			{starting_x, starting_y},
 			{0.0f, 0.0f},
-			radius,
+			PARTICLE_RADIUS,
 			isBoundary,
 			color
 		};
@@ -322,11 +340,12 @@ struct Solver
 			const up::Vec2 to_obj = p->position_current - centerPosition;
 			const float dist = to_obj.length();
 
-			if (dist > radius - p->radius)
+			if (dist > radius + 10)
 			{	
-				const up::Vec2 n = { to_obj.x / dist, to_obj.y / dist };
-				p->velocity *= BOUND_DAMPING;
-				p->position_current = centerPosition + n * (radius - p->radius);
+				p->position_current = centerPosition;
+				//const up::Vec2 n = { to_obj.x / dist, to_obj.y / dist };
+				//p->velocity *= BOUND_DAMPING;
+				//p->position_current = centerPosition + n * (radius - p->radius);
 			}
 		}
 	}
@@ -358,12 +377,31 @@ struct Solver
 
 	void initializeBoundaryParticles()
 	{	
-		for (float i = 0; i < 360; i+=3) 
+		for (float i = 0; i < 360; i+= 0.5f) 
 		{
 			float posX = cos(i) * radius + centerPosition.x;
 			float posY = sin(i) * radius + centerPosition.y;
 
-			addParticle(posX, posY, 5.f, true, sf::Color::Magenta);
+			addParticle(posX, posY, true, sf::Color::Magenta);
+		}
+	}
+
+	void initializeLiquidParticles(int initialParticles)
+	{
+		float minXPos = centerPosition.x - radius/2;
+		float minYPos = centerPosition.y;
+		float xPosition = minXPos;
+		float yPosition = minYPos;
+
+		for (int i = 0; i < initialParticles; i++)
+		{
+			addParticle(xPosition, yPosition, false, sf::Color::Blue);
+			if(xPosition - minXPos < 200) xPosition += PARTICLE_RADIUS * 2;
+			else
+			{
+				xPosition = minXPos;
+				yPosition += PARTICLE_RADIUS * 2;
+			}
 		}
 	}
 
@@ -416,7 +454,7 @@ struct Solver
 		indexYValue[6] = gridCellIndexBits[13];
 		indexYValue[7] = gridCellIndexBits[15];
 
-		return up::Vec2((int) indexXValue.to_ulong(), (int) indexYValue.to_ulong());
+		return up::Vec2((float) indexXValue.to_ulong(), (float) indexYValue.to_ulong());
 	}
 
 };
