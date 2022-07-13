@@ -20,8 +20,8 @@ struct cellGridIndexSort
 struct Solver
 {
 	//Solver constant parameters
-	static constexpr float STIFFNESS = 50.f;
-	static constexpr float PARTICLE_REST_DENSITY = 1.f;
+	static constexpr float STIFFNESS = 500.f;
+	static constexpr float PARTICLE_REST_DENSITY = 2.f;
 	static constexpr float PARTICLE_MASS = 100.f;
 	static constexpr float KERNEL_SUPPORT = 6.f;
 	static constexpr float VISCOSITY = 5.f;
@@ -43,7 +43,7 @@ struct Solver
 
 	up::Vec2 GRAVITY = { 0.f, 100.0f };
 
-	std::string SPACE_FILLING_CURVE = "XYZ";
+	std::string SPACE_FILLING_CURVE = "ZIndex";
 
 	std::vector<std::shared_ptr<Particle>> particles = {};
 	std::vector<CompactCell> compactCellArray = {};
@@ -107,7 +107,7 @@ struct Solver
 			std::bitset<8> indexYValue = std::bitset<8>(gridCellCoordinateY);
 
 			//XYZ curve
-			if (SPACE_FILLING_CURVE == "XYZ") p->gridCellIndex = gridCellCoordinateX + gridCellCoordinateY * CELLS_IN_X;
+			if (SPACE_FILLING_CURVE == "XYZ") p->gridCellIndex = gridCellCoordinateX + gridCellCoordinateY * (int) CELLS_IN_X;
 
 			//Morton Z Space Filling curve
 			if (SPACE_FILLING_CURVE == "ZIndex") p->gridCellIndex = toGridCellIndex(indexXValue, indexYValue);
@@ -172,7 +172,7 @@ struct Solver
 			{
 				int neighborCellIndex;
 
-				if (SPACE_FILLING_CURVE == "XYZ") neighborCellIndex = (cellIndexCartesian.x + xIndex) + (cellIndexCartesian.y + yIndex) * CELLS_IN_X;
+				if (SPACE_FILLING_CURVE == "XYZ") neighborCellIndex = ((int) cellIndexCartesian.x + xIndex) + ((int) cellIndexCartesian.y + yIndex) * (int) CELLS_IN_X;
 
 				if (SPACE_FILLING_CURVE == "ZIndex") neighborCellIndex = toGridCellIndex(std::bitset<8>((int) cellIndexCartesian.x + xIndex), std::bitset<8>((int) cellIndexCartesian.y + yIndex));
 
@@ -377,7 +377,7 @@ struct Solver
 
 	void initializeBoundaryParticles()
 	{	
-		for (float i = 0; i < 360; i+= 0.5f) 
+		for (float i = 0; i < 360; i+= 0.75f) 
 		{
 			float posX = cos(i) * radius + centerPosition.x;
 			float posY = sin(i) * radius + centerPosition.y;

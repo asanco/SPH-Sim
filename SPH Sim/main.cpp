@@ -13,7 +13,13 @@ const float dt = 0.01f;
 bool update = true;
 bool stepUpdate = false;
 bool showInfo = false;
+bool isRecording = false;
 
+int frameNumber = 0;
+
+up::Vec2 initialWallPoint{ -1.f, -1.f };
+
+//Move to another class
 void RenderSimulation(sf::RenderWindow& window, Solver solver) 
 {
 	sf::Font font;
@@ -37,6 +43,7 @@ void RenderSimulation(sf::RenderWindow& window, Solver solver)
 	}
 }
 
+//Move to another class
 void addParticle(Solver& solver) 
 {
 	sf::Color particleColor = sf::Color::Blue;
@@ -49,12 +56,43 @@ void addParticle(Solver& solver)
 
 }
 
+//Move to another class
 void addBoundaryParticle(Solver& solver, float positionX, float positionY)
 {
 	solver.addParticle(positionX, positionY, true, sf::Color::Magenta);
 }
 
+//Move to another class
+void handleAddWall(Solver& solver, float positionX, float positionY)
+{
+	solver.addParticle(positionX, positionY, true, sf::Color::Magenta);
+	
+	if (initialWallPoint.x == -1.f)
+	{
+		initialWallPoint = { positionX, positionY };
+	}
+	else
+	{
+		up::Vec2 finalWallPoint = { positionX, positionY };
+		up::Vec2 wallVector = finalWallPoint - initialWallPoint;
+		up::Vec2 wallVectorNormalized = wallVector / wallVector.length();
+
+		int particlesToAdd = (int) floor(wallVector.length() / (solver.PARTICLE_RADIUS * 2) );
+
+		for (int i = 0; i < particlesToAdd; i++)
+		{
+			float posX = i * wallVector.x / particlesToAdd + initialWallPoint.x;
+			float posY = i * wallVector.y / particlesToAdd + initialWallPoint.y;
+
+			solver.addParticle(posX, posY, true, sf::Color::Magenta);
+		}
+
+		initialWallPoint = { -1.f, -1.f };
+	}
+}
+
 //Keyboard inputs
+//Move to another class
 void ProcessEvents(sf::RenderWindow& window, Solver& solver)
 {
 	sf::Event event;
@@ -68,6 +106,7 @@ void ProcessEvents(sf::RenderWindow& window, Solver& solver)
 		case sf::Event::KeyPressed:
 			if (event.key.code == sf::Keyboard::A) addParticle(solver);
 			else if (event.key.code == sf::Keyboard::U) update = !update;
+			else if (event.key.code == sf::Keyboard::O) isRecording = !isRecording;
 			else if (event.key.code == sf::Keyboard::M) solver.initializeLiquidParticles(1000);
 			else if (event.key.code == sf::Keyboard::I) showInfo = !showInfo;
 			else if (event.key.code == sf::Keyboard::R) {
@@ -78,12 +117,21 @@ void ProcessEvents(sf::RenderWindow& window, Solver& solver)
 			else if (event.key.code == sf::Keyboard::Space) stepUpdate = !stepUpdate;
 			break;
 		case sf::Event::MouseButtonPressed:
-			if (event.mouseButton.button == sf::Mouse::Left) addBoundaryParticle(solver, (float) event.mouseButton.x, (float) event.mouseButton.y);
+			if (event.mouseButton.button == sf::Mouse::Right) addBoundaryParticle(solver, (float) event.mouseButton.x, (float) event.mouseButton.y);
+			if (event.mouseButton.button == sf::Mouse::Left) handleAddWall(solver, (float) event.mouseButton.x, (float) event.mouseButton.y);
 			break;
 		default:
 			break;
 		}
 	}
+}
+
+void handleTakeScreenShot(sf::Texture &capturedFrameTexture, sf::RenderWindow &window)
+{
+	capturedFrameTexture.update(window);
+	sf::Image capturedFrame = capturedFrameTexture.copyToImage();
+	capturedFrame.saveToFile("../sequence/frame" + std::to_string(frameNumber) + ".png");
+	frameNumber++;
 }
 
 int main()
@@ -105,6 +153,9 @@ int main()
 	sf::CircleShape background_inner(solver.radius);
 	background_inner.setFillColor(sf::Color::Black);
 	background_inner.setPosition(sf::Vector2f(solver.centerPosition.x - solver.radius, solver.centerPosition.y - solver.radius));
+
+	sf::Texture capturedFrameTexture;
+	capturedFrameTexture.create(win_width, win_height);
 
 	sf::Font font;
 	if (!font.loadFromFile("../res/font.ttf")) std::cout << "Error loading font" << std::endl;
@@ -157,6 +208,9 @@ int main()
 		previousTime = currentTime;
 
 		window.display();
+
+		if (isRecording) handleTakeScreenShot(capturedFrameTexture, window);
+
 	}
 
 	return 0;
