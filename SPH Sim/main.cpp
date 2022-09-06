@@ -38,7 +38,7 @@ void RenderSimulation(sf::RenderWindow& window, Solver solver)
 			sf::Text particleCellText(std::to_string(p->gridCellIndex), font, 12);
 			particleCellText.setFillColor(sf::Color::White);
 			particleCellText.setPosition(p->position_current.x, p->position_current.y);
-			window.draw(particleCellText);
+			if(!p->isBoundary) window.draw(particleCellText);
 		}
 	}
 }

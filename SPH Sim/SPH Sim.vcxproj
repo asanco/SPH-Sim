@@ -105,6 +105,7 @@
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>C:\Users\Andres\Documents\SFML-2.5.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -130,12 +131,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="hilbert.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="particle.hpp" />
     <ClCompile Include="solver.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compactCell.hpp" />
+    <ClInclude Include="hilbert_curve.hpp" />
     <ClInclude Include="vector2.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

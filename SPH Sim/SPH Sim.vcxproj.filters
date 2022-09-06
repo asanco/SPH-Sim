@@ -24,12 +24,18 @@
     <ClCompile Include="solver.hpp">
       <Filter>Header Files</Filter>
     </ClCompile>
+    <ClCompile Include="hilbert.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vector2.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="compactCell.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hilbert_curve.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

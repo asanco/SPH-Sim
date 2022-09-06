@@ -4,10 +4,13 @@
 
 #include "particle.hpp"
 #include "compactCell.hpp"
+#include "hilbert_curve.hpp"
+
 #include <vector>
 #include <algorithm>
 #include <math.h>
 #include <bitset>
+#include <execution>
 
 struct cellGridIndexSort
 {
@@ -23,7 +26,7 @@ struct Solver
 	static constexpr float STIFFNESS = 500.f;
 	static constexpr float PARTICLE_REST_DENSITY = 2.f;
 	static constexpr float PARTICLE_MASS = 100.f;
-	static constexpr float KERNEL_SUPPORT = 6.f;
+	static constexpr float KERNEL_SUPPORT = 2.f;
 	static constexpr float VISCOSITY = 5.f;
 	static constexpr float BOUND_DAMPING = -0.5f;
 	static constexpr float SIM_WIDTH = 1200.f;
@@ -32,6 +35,7 @@ struct Solver
 
 	static constexpr float radius = 300.0f;
 	static constexpr float CELLS_IN_X = radius * 2 / KERNEL_SUPPORT;
+	static constexpr int HILBER_CURVE_LEVEL = radius / KERNEL_SUPPORT;
 
 	bool hasLiquidParticle = false;
 	const up::Vec2 centerPosition = { 600.0f, 350.0f };
@@ -43,7 +47,7 @@ struct Solver
 
 	up::Vec2 GRAVITY = { 0.f, 100.0f };
 
-	std::string SPACE_FILLING_CURVE = "ZIndex";
+	std::string SPACE_FILLING_CURVE = "HILBERT";
 
 	std::vector<std::shared_ptr<Particle>> particles = {};
 	std::vector<CompactCell> compactCellArray = {};
@@ -72,8 +76,13 @@ struct Solver
 	void basicNeighborSearch()
 	{
 		clock.restart();
-
-		for (auto &currentParticle : particles)
+		
+		//par_unseq
+		std::for_each(
+			std::execution::par,
+			particles.begin(),
+			particles.end(),
+			[this](auto&& currentParticle)
 		{
 			currentParticle->neighbors.clear();
 
@@ -82,39 +91,44 @@ struct Solver
 				up::Vec2 neighborDistance = currentParticle->position_current - potentialNeighborParticle->position_current;
 				float distance = neighborDistance.length();
 
-				if (distance < 2 * KERNEL_SUPPORT) 
+				if (distance < 2 * KERNEL_SUPPORT)
 				{
 					currentParticle->neighbors.push_back(potentialNeighborParticle);
 				}
 			}
-		}
+		});
+
 		elapsedTime = clock.getElapsedTime();
 	}
 
-	void compressedNeighborSearchInit() 
+	void compressedNeighborSearchInit()
 	{
 		clock.restart();
 		compactCellArray.clear();
 
-		for (auto &p : particles) 
+		std::for_each(
+			std::execution::par,
+			particles.begin(),
+			particles.end(),
+			[this](auto&& p)
 		{
 			//Compute grid cell coordinate (k, l)
-			int gridCellCoordinateX = (int) floor((p->position_current.x - minPosX) / KERNEL_SUPPORT);
-			int gridCellCoordinateY = (int) floor((p->position_current.y - minPosY) / KERNEL_SUPPORT);
+			int gridCellCoordinateX = (int)floor((p->position_current.x - minPosX) / KERNEL_SUPPORT);
+			int gridCellCoordinateY = (int)floor((p->position_current.y - minPosY) / KERNEL_SUPPORT);
 
 			//Compute and store grid cell z-index
 			std::bitset<8> indexXValue = std::bitset<8>(gridCellCoordinateX);
 			std::bitset<8> indexYValue = std::bitset<8>(gridCellCoordinateY);
 
 			//XYZ curve
-			if (SPACE_FILLING_CURVE == "XYZ") p->gridCellIndex = gridCellCoordinateX + gridCellCoordinateY * (int) CELLS_IN_X;
+			if (SPACE_FILLING_CURVE == "XYZ") p->gridCellIndex = gridCellCoordinateX + gridCellCoordinateY * (int)CELLS_IN_X;
 
 			//Morton Z Space Filling curve
 			if (SPACE_FILLING_CURVE == "ZIndex") p->gridCellIndex = toGridCellIndex(indexXValue, indexYValue);
 
 			//Hilbert curve
-
-		}
+			if (SPACE_FILLING_CURVE == "HILBERT") p->gridCellIndex = xy2d(HILBER_CURVE_LEVEL, (int)(p->position_current.x - minPosX), (int)(p->position_current.y - minPosY));
+		});
 
 		//Sort particles by grid cell index
 		sort(particles.begin(), particles.end(), cellGridIndexSort());
@@ -164,6 +178,9 @@ struct Solver
 			//Morton z space filling curve
 			if (SPACE_FILLING_CURVE == "ZIndex") cellIndexCartesian = toCartesianCoordinates(cellIndex);
 
+			//Hilbert curve
+			if (SPACE_FILLING_CURVE == "HILBERT") cellIndexCartesian = d2xy(HILBER_CURVE_LEVEL, cellIndex);
+
 			int xIndex = -1;
 			int yIndex = -1;
 
@@ -175,6 +192,8 @@ struct Solver
 				if (SPACE_FILLING_CURVE == "XYZ") neighborCellIndex = ((int) cellIndexCartesian.x + xIndex) + ((int) cellIndexCartesian.y + yIndex) * (int) CELLS_IN_X;
 
 				if (SPACE_FILLING_CURVE == "ZIndex") neighborCellIndex = toGridCellIndex(std::bitset<8>((int) cellIndexCartesian.x + xIndex), std::bitset<8>((int) cellIndexCartesian.y + yIndex));
+
+				if (SPACE_FILLING_CURVE == "HILBERT") neighborCellIndex = xy2d(HILBER_CURVE_LEVEL, (int) cellIndexCartesian.x, (int) cellIndexCartesian.y);
 
 				auto iterator = std::find_if(compactCellArray.begin(), compactCellArray.end(), [&](CompactCell& c) { return c.cell == neighborCellIndex; });
 
@@ -225,9 +244,13 @@ struct Solver
 	//Computes pressure
 	void calculateDensityPressure()
 	{
-		for (auto &pi : particles)
+		std::for_each(
+			std::execution::par,
+			particles.begin(),
+			particles.end(),
+			[this](auto&& pi)
 		{
-			if (pi->isBoundary) continue;
+			if (pi->isBoundary) return;
 
 			pi->density = 0;
 
@@ -236,13 +259,14 @@ struct Solver
 				up::Vec2 distanceVector = pj->position_current - pi->position_current;
 				float distance = distanceVector.length();
 
-				pi->density += PARTICLE_MASS * kernelFunction(distance);
+				if(pj->isBoundary) pi->density += PARTICLE_MASS * kernelFunction(distance) * 0.01f;
+				else pi->density += PARTICLE_MASS * kernelFunction(distance);
 				//Check if neighbor is boundary
-				if(pj->isBoundary) pj->pressure = pi->pressure;
+				if(pj->isBoundary) pj->pressure = pi->pressure * 0.1f;
 			}
 			
 			pi->pressure = std::max(STIFFNESS * ((pi->density / PARTICLE_REST_DENSITY) - 1.0f), 0.f);
-		}
+		});
 	}
 
 	float kernelFunction(float distance)
@@ -275,9 +299,13 @@ struct Solver
 	//Adds both types of accelerations
 	void calculateForces(void)
 	{
-		for (auto &pi : particles)
+		std::for_each(
+			std::execution::par,
+			particles.begin(),
+			particles.end(),
+			[this](auto&& pi)
 		{
-			if (pi->isBoundary) continue;
+			if (pi->isBoundary) return;
 
 			up::Vec2 fpressure(0.f, 0.f);
 			up::Vec2 fviscosity(0.f, 0.f);
@@ -298,26 +326,34 @@ struct Solver
 
 			//Sum non-pressure accelerations and pressure accelerations
 			pi->forces = fpressure + (2 * VISCOSITY * fviscosity) + GRAVITY;
-		}
+		});
 	}
 
 	void updatePositions(float dt, bool euler) 
 	{
-		for(auto &p: particles)
+		std::for_each(
+			std::execution::par,
+			particles.begin(),
+			particles.end(),
+			[this, dt, euler](auto&& p)
 		{
 			if (!p->isBoundary) {
 				if (euler) p->updatePositionEuler(dt);
 				else p->updatePosition(dt);
 			}
-		}
+		});
 	}
 
 	void applyGravity() 
 	{
-		for (auto &p : particles)
+		std::for_each(
+			std::execution::par,
+			particles.begin(),
+			particles.end(),
+			[this](auto&& p)
 		{
 			if(!p->isBoundary) p->accelerate(GRAVITY);
-		}
+		});
 	}
 
 	void addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color) {
@@ -377,7 +413,7 @@ struct Solver
 
 	void initializeBoundaryParticles()
 	{	
-		for (float i = 0; i < 360; i+= 0.75f) 
+		for (float i = 0; i < 360; i+= 0.2f) 
 		{
 			float posX = cos(i) * radius + centerPosition.x;
 			float posY = sin(i) * radius + centerPosition.y;
@@ -389,14 +425,14 @@ struct Solver
 	void initializeLiquidParticles(int initialParticles)
 	{
 		float minXPos = centerPosition.x - radius/2;
-		float minYPos = centerPosition.y;
+		float minYPos = centerPosition.y - 200;
 		float xPosition = minXPos;
 		float yPosition = minYPos;
 
 		for (int i = 0; i < initialParticles; i++)
 		{
 			addParticle(xPosition, yPosition, false, sf::Color::Blue);
-			if(xPosition - minXPos < 200) xPosition += PARTICLE_RADIUS * 2;
+			if(xPosition - minXPos < 300) xPosition += PARTICLE_RADIUS * 2;
 			else
 			{
 				xPosition = minXPos;
