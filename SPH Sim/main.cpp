@@ -8,7 +8,7 @@ const uint32_t win_height = 700;
 const float particle_starting_x = win_width / 2;
 const float particle_starting_y = win_height / 2;
 
-const float dt = 0.01f;
+const float dt = 0.001f;
 
 bool update = true;
 bool stepUpdate = false;
@@ -107,7 +107,7 @@ void ProcessEvents(sf::RenderWindow& window, Solver& solver)
 			if (event.key.code == sf::Keyboard::A) addParticle(solver);
 			else if (event.key.code == sf::Keyboard::U) update = !update;
 			else if (event.key.code == sf::Keyboard::O) isRecording = !isRecording;
-			else if (event.key.code == sf::Keyboard::M) solver.initializeLiquidParticles(1000);
+			else if (event.key.code == sf::Keyboard::M) solver.initializeLiquidParticles(10000);
 			else if (event.key.code == sf::Keyboard::I) showInfo = !showInfo;
 			else if (event.key.code == sf::Keyboard::R) {
 				solver.particles.clear();
@@ -200,7 +200,7 @@ int main()
 
 		window.draw(background_outer);
 		window.draw(background_inner);
-		window.draw(text);
+		//window.draw(text);
 
 		if(update) solver.update(dt);
 		if(stepUpdate) update = false;

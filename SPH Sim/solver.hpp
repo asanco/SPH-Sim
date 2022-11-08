@@ -24,7 +24,7 @@ struct Solver
 {
 	//Solver constant parameters
 	static constexpr float STIFFNESS = 500.f;
-	static constexpr float PARTICLE_REST_DENSITY = 2.f;
+	static constexpr float PARTICLE_REST_DENSITY = 1.f;
 	static constexpr float PARTICLE_MASS = 100.f;
 	static constexpr float KERNEL_SUPPORT = 2.f;
 	static constexpr float VISCOSITY = 5.f;
@@ -47,7 +47,7 @@ struct Solver
 
 	up::Vec2 GRAVITY = { 0.f, 100.0f };
 
-	std::string SPACE_FILLING_CURVE = "HILBERT";
+	std::string SPACE_FILLING_CURVE = "ZIndex";
 
 	std::vector<std::shared_ptr<Particle>> particles = {};
 	std::vector<CompactCell> compactCellArray = {};
@@ -62,7 +62,7 @@ struct Solver
 		compressedNeighborSearchInit();
 		calculateDensityPressure();
 		calculateForces();
-		//handleBoundaries();
+		handleBoundaries();
 		updatePositions(dt, true);
 		
 		//Basic sim
@@ -259,10 +259,10 @@ struct Solver
 				up::Vec2 distanceVector = pj->position_current - pi->position_current;
 				float distance = distanceVector.length();
 
-				if(pj->isBoundary) pi->density += PARTICLE_MASS * kernelFunction(distance) * 0.01f;
+				if(pj->isBoundary) pi->density += PARTICLE_MASS * kernelFunction(distance) * 0.9f;
 				else pi->density += PARTICLE_MASS * kernelFunction(distance);
 				//Check if neighbor is boundary
-				if(pj->isBoundary) pj->pressure = pi->pressure * 0.1f;
+				if(pj->isBoundary) pj->pressure = pi->pressure;
 			}
 			
 			pi->pressure = std::max(STIFFNESS * ((pi->density / PARTICLE_REST_DENSITY) - 1.0f), 0.f);
@@ -376,12 +376,11 @@ struct Solver
 			const up::Vec2 to_obj = p->position_current - centerPosition;
 			const float dist = to_obj.length();
 
-			if (dist > radius + 10)
+			if (dist >= radius && !p->isBoundary)
 			{	
-				p->position_current = centerPosition;
-				//const up::Vec2 n = { to_obj.x / dist, to_obj.y / dist };
-				//p->velocity *= BOUND_DAMPING;
-				//p->position_current = centerPosition + n * (radius - p->radius);
+				const up::Vec2 n = { to_obj.x / dist, to_obj.y / dist };
+				p->position_current = centerPosition + n * (radius - p->radius);
+				p->velocity *= BOUND_DAMPING;
 			}
 		}
 	}
@@ -413,7 +412,7 @@ struct Solver
 
 	void initializeBoundaryParticles()
 	{	
-		for (float i = 0; i < 360; i+= 0.2f) 
+		for (float i = 0; i < 360; i+= .2f) 
 		{
 			float posX = cos(i) * radius + centerPosition.x;
 			float posY = sin(i) * radius + centerPosition.y;
