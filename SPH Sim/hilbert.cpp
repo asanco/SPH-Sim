@@ -54,7 +54,7 @@ up::Vec2 d2xy(int m, int d)
 		y = y + s * ry;
 		t = t / 4;
 	}
-	return up::Vec2(x, y);
+	return up::Vec2((float) x, (float) y);
 }
 //****************************************************************************80
 

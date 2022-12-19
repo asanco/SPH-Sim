@@ -16,6 +16,7 @@ struct Particle
 
 	up::Vec2 velocity = { 0.0f, 0.0f };
 	up::Vec2 forces = { 0.0f, 0.0f };
+	up::Vec2 predictedVelocity = { 0.f, 0.f };
 
 	float density = 1.0f;
 	float pressure = 0.0f;

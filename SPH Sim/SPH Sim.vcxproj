@@ -134,11 +134,14 @@
     <ClCompile Include="hilbert.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="particle.hpp" />
+    <ClCompile Include="renderer.cpp" />
+    <ClCompile Include="solver.cpp" />
     <ClCompile Include="solver.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="compactCell.hpp" />
     <ClInclude Include="hilbert_curve.hpp" />
+    <ClInclude Include="renderer.hpp" />
     <ClInclude Include="vector2.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
