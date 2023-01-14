@@ -1,4 +1,5 @@
 #include "renderer.hpp"
+#include <iostream>
 
 Renderer::Renderer(sf::RenderWindow & window, sf::RenderTarget & target, Solver & solver)
 	: showInfo(false),
@@ -88,7 +89,7 @@ void Renderer::ProcessEvents()
 		switch (event.type)
 		{
 		case sf::Event::KeyPressed:
-			//if (event.key.code == sf::Keyboard::A) addParticle(solver);
+			if (event.key.code == sf::Keyboard::A) m_solver.addParticle(600, 350, false, sf::Color::Blue);
 			//else if (event.key.code == sf::Keyboard::U) update = !update;
 			if (event.key.code == sf::Keyboard::O) isRecording = !isRecording;
 			else if (event.key.code == sf::Keyboard::N) m_solver.initializeLiquidParticles(1000);

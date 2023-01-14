@@ -18,12 +18,6 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="particle.hpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
-    <ClCompile Include="solver.hpp">
-      <Filter>Header Files</Filter>
-    </ClCompile>
     <ClCompile Include="hilbert.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -31,6 +25,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="solver.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="particle.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -45,6 +42,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="renderer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="particle.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="solver.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

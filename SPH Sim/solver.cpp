@@ -299,14 +299,11 @@ void Solver::updatePositions(float dt, bool euler)
 }
 
 void Solver::addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color) {
-	Particle newParticle = {
+	Particle newParticle(
 		{starting_x, starting_y},
-		{starting_x, starting_y},
-		{0.0f, 0.0f},
 		PARTICLE_RADIUS,
-		isBoundary,
 		color
-	};
+	);
 
 	fluidParticles.push_back(std::make_shared<Particle>(newParticle));
 }
