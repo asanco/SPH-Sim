@@ -41,8 +41,10 @@ void Renderer::RenderSimulation() {
 	text.setFillColor(sf::Color::Black);
 	text.move(sf::Vector2f(20.0f, 20.f));
 
-	std::string screenText = "Neighbor search time (ms): " + std::to_string(m_solver.elapsedTime.asMicroseconds());
+	std::string isUpdatingText = m_solver.updating ? "true" : "false";
+	std::string screenText = "Neighbor search time (ms): ";
 	screenText.append("\nNumber of particles:" + std::to_string(m_solver.fluidParticles.size()));
+	screenText.append("\nUpdating: " + isUpdatingText);
 
 	text.setString(screenText);
 
@@ -90,10 +92,10 @@ void Renderer::ProcessEvents()
 		{
 		case sf::Event::KeyPressed:
 			if (event.key.code == sf::Keyboard::A) m_solver.addParticle(600, 350, false, sf::Color::Blue);
-			//else if (event.key.code == sf::Keyboard::U) update = !update;
+			else if (event.key.code == sf::Keyboard::U) m_solver.updating = !m_solver.updating;
 			if (event.key.code == sf::Keyboard::O) isRecording = !isRecording;
 			else if (event.key.code == sf::Keyboard::N) m_solver.initializeLiquidParticles(1000);
-			else if (event.key.code == sf::Keyboard::M) m_solver.initializeLiquidParticles(5000);
+			else if (event.key.code == sf::Keyboard::M) m_solver.initializeLiquidParticles(10);
 			else if (event.key.code == sf::Keyboard::I) showInfo = !showInfo;
 			else if (event.key.code == sf::Keyboard::R) {
 				m_solver.fluidParticles.clear();

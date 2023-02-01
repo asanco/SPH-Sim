@@ -3,10 +3,10 @@
 #include "vector2.hpp"
 #include <vector>
 
-class Particle {
+class Particle2 {
 
 public:
-	Particle(up::Vec2 pos_current, float particle_radius, sf::Color particle_color);
+	Particle2(up::Vec2 pos_current, float particle_radius, sf::Color particle_color);
 	up::Vec2 position_current;
 	up::Vec2 position_old;
 	up::Vec2 acceleration;
@@ -22,7 +22,7 @@ public:
 	float pressure = 0.0f;
 
 	uint16_t gridCellIndex;
-	std::vector<std::shared_ptr<Particle>> neighbors = {};
+	std::vector<std::shared_ptr<Particle2>> neighbors = {};
 	
 	// Verlet integration
 	void updatePosition(float dt);

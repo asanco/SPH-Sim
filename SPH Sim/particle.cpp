@@ -6,7 +6,7 @@
 #include <vector>
 #include <memory>
 
-Particle::Particle(up::Vec2 pos_current, float particle_radius, sf::Color particle_color)
+Particle2::Particle2(up::Vec2 pos_current, float particle_radius, sf::Color particle_color)
 {
 	up::Vec2 position_current = pos_current;
 	up::Vec2 position_old = pos_current;
@@ -17,7 +17,7 @@ Particle::Particle(up::Vec2 pos_current, float particle_radius, sf::Color partic
 }
 
 // Verlet integration
-void Particle::updatePosition(float dt) {
+void Particle2::updatePosition(float dt) {
 	velocity = position_current - position_old;
 	// Save curret position
 	position_old = position_current;
@@ -28,13 +28,13 @@ void Particle::updatePosition(float dt) {
 }
 
 // Explicit Euler integration
-void Particle::updatePositionEuler(float dt)
+void Particle2::updatePositionEuler(float dt)
 {
 	velocity += dt * forces;
 	position_current += dt * velocity;
 }
 
-void Particle::accelerate(up::Vec2 acc)
+void Particle2::accelerate(up::Vec2 acc)
 {
 	acceleration += acc;
 }
