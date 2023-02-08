@@ -26,6 +26,8 @@ void PressureSolver::compute() {
 		p->diagonalElement = diagonalElement;
 		p->predictedDensityError = sourceTerm;
 		p->pressure = 0.f;
+
+		//std::cout << "Source term: " << sourceTerm << std::endl;
 	}
 	
 	//Iteration l
@@ -56,6 +58,8 @@ void PressureSolver::compute() {
 		{
 			std::shared_ptr<Particle> &p = particles->at(i);
 
+			if (p->isBoundary) continue;
+
 			float negVelocityDivergence = computeDivergence(p);
 			p->negVelocityDivergence = negVelocityDivergence;
 
@@ -71,11 +75,12 @@ void PressureSolver::compute() {
 		//Divide by rest density of fluid to normalize the change of volume
 		densityErrorAvg /= PARTICLE_REST_DENSITY;
 		densityErrorAvg /= 10;
-
-		std::cout << densityErrorAvg << std::endl;
-		
+		std::cout << "Density error avg: " << densityErrorAvg << std::endl;
 		numIterations++;
 	}
+
+	std::cout << " " << std::endl;
+
 
 }
 
@@ -104,7 +109,7 @@ float PressureSolver::computeSourceTerm(std::shared_ptr<Particle> pi) {
 	summedTerm1 = dt * summedTerm1;
 	summedTerm2 = dt * summedTerm2;
 
-	sourceTerm -= PARTICLE_REST_DENSITY - pi->density - summedTerm1 - summedTerm2;
+	sourceTerm = PARTICLE_REST_DENSITY - pi->density - summedTerm1 - summedTerm2;
 
 	return sourceTerm;
 }

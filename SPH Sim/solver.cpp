@@ -3,6 +3,7 @@
 #define _USE_MATH_DEFINES
 
 #include <math.h>
+#include <iostream>
 
 Solver::Solver(float dt)
 	: dt(dt),
@@ -61,6 +62,8 @@ void Solver::computeDensity()
 
 				sphDensity += PARTICLE_MASS * kernelFunction(distance);
 			}
+
+			//if(!pi->isBoundary) std::cout << "Density: " << sphDensity << std::endl;
 
 			pi->density = sphDensity;
 			//pi->pressure = std::max(STIFFNESS * ((pi->density / PARTICLE_REST_DENSITY) - 1.0f), 0.f);
@@ -133,8 +136,22 @@ void Solver::computeForces()
 			}
 
 			//Sum non-pressure accelerations
-			pi->forces = VISCOSITY * fviscosity + GRAVITY;
+			pi->forces = VISCOSITY * fviscosity + GRAVITY * PARTICLE_MASS;
 			pi->predictedVelocity = pi->velocity + dt * pi->forces;
+		});
+}
+
+void Solver::applyPressureForce() {
+	std::for_each(
+		std::execution::par,
+		particles.begin(),
+		particles.end(),
+		[this](auto&& pi)
+		{
+			if (pi->isBoundary) return;
+
+			//Sum pressure accelerations
+			pi->forces += pi->pressureAcceleration * PARTICLE_MASS;
 		});
 }
 

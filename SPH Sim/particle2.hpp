@@ -44,7 +44,7 @@ void updatePosition(float dt) {
 // Explicit Euler integration
 void updatePositionEuler(float dt)
 {
-	velocity += dt * forces;
+	velocity += dt * forces / 100.f;
 	position_current += dt * velocity;
 }
 

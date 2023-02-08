@@ -51,6 +51,7 @@ public:
 	void addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, bool isTheOne = false);
 	void initializeBoundaryParticles();
 	void initializeLiquidParticles(int initialParticles);
+	void applyPressureForce();
 
 private:
 	float dt;
