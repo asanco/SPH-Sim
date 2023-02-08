@@ -9,23 +9,23 @@ Solver::Solver(float dt)
 	hasLiquidParticle(false), 
 	centerPosition({ 600.0f, 350.0f }),
 	GRAVITY({ 0.f, 1000.0f }),
-	fluidParticles({}),
-	boundaryParticles({})
+	particles({})
 {
-	solvers.push_back(std::move(std::make_shared<NeighborSearch>("ZIndex", &fluidParticles)));
-	solvers.push_back(std::move(std::make_shared<PressureSolver>(&fluidParticles)));
+	solvers.push_back(std::move(std::make_shared<NeighborSearch>("ZIndex", &particles)));
+	solvers.push_back(std::move(std::make_shared<PressureSolver>(&particles)));
 }
 
 void Solver::update()
 {
+	if (stepUpdate) updating = false;
 	if (!updating) return;
 
 	//Neighbor search
 	solvers.at(0)->compute();
 	//Density calculation
-	calculateDensity();
+	computeDensity();
 	//Non pressure acceleration and predicted velocity calculation
-	calculateForces();
+	computeForces();
 	//Pressure solver
 	solvers.at(1)->compute();
 	//Time integration
@@ -33,31 +33,38 @@ void Solver::update()
 }
 
 //Computes density
-void Solver::calculateDensity()
+//TODO: Append neighbors to one list
+void Solver::computeDensity()
 {
 	std::for_each(
 		std::execution::par,
-		fluidParticles.begin(),
-		fluidParticles.end(),
+		particles.begin(),
+		particles.end(),
 		[this](auto&& pi)
 		{
-			pi->density = computeDensity(pi);
+			//if (pi->isBoundary) return;
+
+			float sphDensity = 0.f;
+
+			for (auto &pj : pi->neighbors)
+			{
+				up::Vec2 distanceVector = pj->position_current - pi->position_current;
+				float distance = distanceVector.length();
+
+				sphDensity += PARTICLE_MASS * kernelFunction(distance);
+			}
+
+			for (auto &pj : pi->neighborsBoundary)
+			{
+				up::Vec2 distanceVector = pj->position_current - pi->position_current;
+				float distance = distanceVector.length();
+
+				sphDensity += PARTICLE_MASS * kernelFunction(distance);
+			}
+
+			pi->density = sphDensity;
 			//pi->pressure = std::max(STIFFNESS * ((pi->density / PARTICLE_REST_DENSITY) - 1.0f), 0.f);
 		});
-}
-
-float Solver::computeDensity(std::shared_ptr<Particle> pi) {
-	float sphDensity = 0.f;
-
-	for (auto &pj : pi->neighbors)
-	{
-		up::Vec2 distanceVector = pj->position_current - pi->position_current;
-		float distance = distanceVector.length();
-
-		sphDensity += PARTICLE_MASS * kernelFunction(distance);
-	}
-
-	return sphDensity;
 }
 
 float Solver::kernelFunction(float distance)
@@ -99,15 +106,18 @@ float Solver::kernelLaplacian(float distance)
 }
 
 //Computes non-pressure accelerations (including gravity)
-//Computed predicted velocitiy
-void Solver::calculateForces()
+//Computes predicted velocitiy
+//Only applies to liquid particles
+void Solver::computeForces()
 {
 	std::for_each(
 		std::execution::par,
-		fluidParticles.begin(),
-		fluidParticles.end(),
+		particles.begin(),
+		particles.end(),
 		[this](auto&& pi)
 		{
+			if (pi->isBoundary) return;
+
 			up::Vec2 fviscosity(0.f, 0.f);
 
 			for (auto &pj : pi->neighbors)
@@ -132,24 +142,26 @@ void Solver::updatePositions(float dt)
 {
 	std::for_each(
 		std::execution::par,
-		fluidParticles.begin(),
-		fluidParticles.end(),
+		particles.begin(),
+		particles.end(),
 		[this, dt](auto&& p)
 		{
-			p->updatePositionEuler(dt);
+			if(!p->isBoundary) p->updatePositionEuler(dt);
 		});
 }
 
-void Solver::addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color) {
+void Solver::addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, bool isTheOne) {
 	Particle newParticle2{
 		{ starting_x, starting_y },
 		{ starting_x, starting_y },
 		{0.f, 0.f},
 		PARTICLE_RADIUS,
-		false,
-		color };
+		isBoundary,
+		color,
+		isTheOne
+	};
 
-	fluidParticles.push_back(std::make_shared<Particle>(newParticle2));
+	particles.push_back(std::make_shared<Particle>(newParticle2));
 }
 
 void Solver::initializeBoundaryParticles()

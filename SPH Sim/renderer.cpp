@@ -43,14 +43,14 @@ void Renderer::RenderSimulation() {
 
 	std::string isUpdatingText = m_solver.updating ? "true" : "false";
 	std::string screenText = "Neighbor search time (ms): ";
-	screenText.append("\nNumber of particles:" + std::to_string(m_solver.fluidParticles.size()));
+	screenText.append("\nNumber of particles:" + std::to_string(m_solver.particles.size()));
 	screenText.append("\nUpdating: " + isUpdatingText);
 
 	text.setString(screenText);
 
 	m_window.draw(text);
 
-	for (auto & p : m_solver.fluidParticles)
+	for (auto & p : m_solver.particles)
 	{
 		sf::CircleShape shape(p->radius);
 
@@ -59,15 +59,19 @@ void Renderer::RenderSimulation() {
 
 		m_window.draw(shape);
 
-		if (showInfo) {
+		if (showInfo && p->theOne) {
 			sf::Text particleCellText(std::to_string(p->gridCellIndex), font, 12);
 			particleCellText.setFillColor(sf::Color::White);
 			particleCellText.setPosition(p->position_current.x, p->position_current.y);
-			if (!p->isBoundary) m_window.draw(particleCellText);
+			m_window.draw(particleCellText);
 		}
 	}
 
 	m_window.display();
+
+	if (isRecording) {
+		handleTakeScreenShot();
+	}
 }
 
 void Renderer::handleTakeScreenShot()
@@ -98,14 +102,16 @@ void Renderer::ProcessEvents()
 			else if (event.key.code == sf::Keyboard::M) m_solver.initializeLiquidParticles(10);
 			else if (event.key.code == sf::Keyboard::I) showInfo = !showInfo;
 			else if (event.key.code == sf::Keyboard::R) {
-				m_solver.fluidParticles.clear();
+				m_solver.particles.clear();
 				m_solver.initializeBoundaryParticles();
 			}
-			//else if (event.key.code == sf::Keyboard::Right) update = true;
-			//else if (event.key.code == sf::Keyboard::Space) stepUpdate = !stepUpdate;
+			else if (event.key.code == sf::Keyboard::Right) m_solver.updating = true;
+			else if (event.key.code == sf::Keyboard::Space) m_solver.stepUpdate = !m_solver.stepUpdate;
 			break;
 		case sf::Event::MouseButtonPressed:
-			//if (event.mouseButton.button == sf::Mouse::Right) addBoundaryParticle(solver, (float)event.mouseButton.x, (float)event.mouseButton.y);
+			if (event.mouseButton.button == sf::Mouse::Right) {
+				m_solver.addParticle((float)event.mouseButton.x, (float)event.mouseButton.y, false, sf::Color::Green, true);
+			}
 			//if (event.mouseButton.button == sf::Mouse::Left) handleAddWall(solver, (float)event.mouseButton.x, (float)event.mouseButton.y);
 			break;
 		default:

@@ -13,6 +13,7 @@ struct Particle {
 	float radius;
 	bool isBoundary;
 	sf::Color color;
+	bool theOne = false;
 
 	up::Vec2 velocity = { 0.0f, 0.0f };
 	up::Vec2 forces = { 0.0f, 0.0f };
@@ -21,12 +22,13 @@ struct Particle {
 
 	float diagonalElement;
 	float predictedDensityError;
-	float velocityDivergence;
+	float negVelocityDivergence;
 	float density = 1.0f;
 	float pressure = 0.0f;
 
 	uint16_t gridCellIndex;
 	std::vector<std::shared_ptr<Particle>> neighbors = {};
+	std::vector<std::shared_ptr<Particle>> neighborsBoundary = {};
 
 // Verlet integration
 void updatePosition(float dt) {

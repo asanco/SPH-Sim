@@ -30,7 +30,7 @@ private:
 	float maxPosX = centerPosition.x + radius;
 	float maxPosY = centerPosition.y + radius;
 
-	std::vector<std::shared_ptr<Particle>> *fluidParticles;
+	std::vector<std::shared_ptr<Particle>> *particles;
 
 	int toGridCellIndex(std::bitset<8> indexXValue, std::bitset<8> indexYValue);
 	up::Vec2 toCartesianCoordinates(int gridCellCoordinate);

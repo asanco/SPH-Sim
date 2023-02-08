@@ -9,33 +9,12 @@ const uint32_t win_height = 700;
 const float particle_starting_x = win_width / 2;
 const float particle_starting_y = win_height / 2;
 
-const float dt = 0.01f;
+const float dt = 0.001f;
 
-bool update = true;
-bool stepUpdate = false;
 bool showInfo = false;
 bool isRecording = false;
 
 up::Vec2 initialWallPoint{ -1.f, -1.f };
-
-//Move to another class
-void addParticle(Solver& solver) 
-{
-	sf::Color particleColor = sf::Color::Blue;
-
-	if (!solver.hasLiquidParticle) {
-		particleColor = sf::Color::Green;
-		solver.hasLiquidParticle = true;
-	}
-	solver.addParticle(particle_starting_x + 100, particle_starting_y, false, particleColor);
-
-}
-
-//Move to another class
-void addBoundaryParticle(Solver& solver, float positionX, float positionY)
-{
-	solver.addParticle(positionX, positionY, true, sf::Color::Magenta);
-}
 
 //Move to another class
 void handleAddWall(Solver& solver, float positionX, float positionY)
@@ -67,9 +46,7 @@ void handleAddWall(Solver& solver, float positionX, float positionY)
 }
 
 int main()
-{
-	float fps;
-	
+{	
 	sf::RenderWindow window = sf::RenderWindow(sf::VideoMode(win_width, win_height), "SPH Solver", sf::Style::Default);
 	window.setFramerateLimit(60);
 
@@ -79,27 +56,16 @@ int main()
 	Solver solver(dt);
 	Renderer renderer(window, render_tex, solver);
 
-	sf::Clock clock = sf::Clock::Clock();
-	sf::Time previousTime = clock.getElapsedTime();
-	sf::Time currentTime;
-
-	//solver.initializeBoundaryParticles();
+	solver.initializeBoundaryParticles();
 
 	while (window.isOpen())
 	{
-		//Handle clock times
-		currentTime = clock.getElapsedTime();
-		fps = 1.0f / (currentTime.asSeconds() - previousTime.asSeconds());
-
 		//Get keyboard inputs
 		renderer.ProcessEvents();
-
-		if(update) solver.update();
-		if(stepUpdate) update = false;
+		//Run one simulation loop
+		solver.update();
+		//Render frame
 		renderer.RenderSimulation();
-		previousTime = currentTime;
-
-		if (renderer.isRecording) renderer.handleTakeScreenShot();
 	}
 
 	return 0;

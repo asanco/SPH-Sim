@@ -9,11 +9,11 @@
 class PressureSolver: public SolverBase {
 
 public:
-	PressureSolver(std::vector<std::shared_ptr<Particle>> *fParticles);
+	PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles);
 	void compute() override;
 
 private:
-	std::vector<std::shared_ptr<Particle>> *fluidParticles;
+	std::vector<std::shared_ptr<Particle>> *particles;
 
 	float computeSourceTerm(std::shared_ptr<Particle> pi);
 	float computeDiagonal(std::shared_ptr<Particle> pi);

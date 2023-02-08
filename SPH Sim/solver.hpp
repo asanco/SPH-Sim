@@ -21,6 +21,7 @@ public:
 	Solver(float dt);
 	//Solver constant parameters
 	bool updating = true;
+	bool stepUpdate = false;
 	static constexpr float STIFFNESS = 200.f;
 	static constexpr float PARTICLE_MASS = 100.f;
 	static constexpr float KERNEL_SUPPORT = 10.f;
@@ -38,18 +39,16 @@ public:
 
 	up::Vec2 GRAVITY;
 
-	std::vector<std::shared_ptr<Particle>> fluidParticles;
-	std::vector<std::shared_ptr<Particle>> boundaryParticles;
+	std::vector<std::shared_ptr<Particle>> particles;
 
 	void update();
-	void calculateDensity();
-	float computeDensity(std::shared_ptr<Particle> pi);
+	void computeDensity();
 	float kernelFunction(float distance);
 	up::Vec2 kernelGradient(up::Vec2 distance);
 	float kernelLaplacian(float distance);
-	void calculateForces(void);
+	void computeForces(void);
 	void updatePositions(float dt);
-	void addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color);
+	void addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, bool isTheOne = false);
 	void initializeBoundaryParticles();
 	void initializeLiquidParticles(int initialParticles);
 

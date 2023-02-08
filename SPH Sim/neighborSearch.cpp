@@ -11,15 +11,17 @@ struct cellGridIndexSort
 	}
 };
 
-NeighborSearch::NeighborSearch(std::string curveName, std::vector<std::shared_ptr<Particle>> * fParticles)
+NeighborSearch::NeighborSearch(std::string curveName, std::vector<std::shared_ptr<Particle>> * _particles)
 {
 	SPACE_FILLING_CURVE = curveName;
-	fluidParticles = fParticles;
+	particles = _particles;
 }
 
 void NeighborSearch::compute() {
 	compressedNeighborSearchInit();
-	if (fluidParticles->size() > 0) {
+	compressedNeighborSearch();
+
+	if (particles->size() > 0) {
 		//std::cout << fluidParticles->at(0)->neighbors.size() << std::endl;
 	}
 }
@@ -30,8 +32,8 @@ void NeighborSearch::compressedNeighborSearchInit()
 
 	std::for_each(
 		std::execution::par,
-		fluidParticles->begin(),
-		fluidParticles->end(),
+		particles->begin(),
+		particles->end(),
 		[this](auto&& p)
 		{
 			//Compute grid cell coordinate (k, l)
@@ -54,17 +56,18 @@ void NeighborSearch::compressedNeighborSearchInit()
 		});
 
 	//Sort particles by grid cell index
-	std::sort(fluidParticles->begin(), fluidParticles->end(), cellGridIndexSort());
+	std::sort(particles->begin(), particles->end(), cellGridIndexSort());
 
 	//Generate and fill the compact cell array
 	int marker = 0;
 	int scan = 0;
 	int currentCell = -1;
 
-	for (size_t i = 0; i < fluidParticles->size(); ++i)
+	for (size_t i = 0; i < particles->size(); ++i)
 	{
-		std::shared_ptr<Particle> &p = fluidParticles->at(i);
+		std::shared_ptr<Particle> &p = particles->at(i);
 		p->neighbors.clear();
+		p->neighborsBoundary.clear();
 
 		if (currentCell != p->gridCellIndex) {
 			marker = 1;
@@ -81,8 +84,6 @@ void NeighborSearch::compressedNeighborSearchInit()
 		currentCell = p->gridCellIndex;
 		marker = 0;
 	}
-
-	compressedNeighborSearch();
 }
 
 void NeighborSearch::compressedNeighborSearch() {
@@ -97,10 +98,8 @@ void NeighborSearch::compressedNeighborSearch() {
 
 		//XYZ curve
 		if (SPACE_FILLING_CURVE == "XYZ") cellIndexCartesian = { (float)(cellIndex % (int) CELLS_IN_X), floor(cellIndex / CELLS_IN_X) };
-
 		//Morton z space filling curve
 		if (SPACE_FILLING_CURVE == "ZIndex") cellIndexCartesian = toCartesianCoordinates(cellIndex);
-
 		//Hilbert curve
 		if (SPACE_FILLING_CURVE == "HILBERT") cellIndexCartesian = d2xy(HILBER_CURVE_LEVEL, cellIndex);
 
@@ -113,9 +112,7 @@ void NeighborSearch::compressedNeighborSearch() {
 			int neighborCellIndex;
 
 			if (SPACE_FILLING_CURVE == "XYZ") neighborCellIndex = ((int)cellIndexCartesian.x + xIndex) + ((int)cellIndexCartesian.y + yIndex) * (int)CELLS_IN_X;
-
 			if (SPACE_FILLING_CURVE == "ZIndex") neighborCellIndex = toGridCellIndex(std::bitset<8>((int)cellIndexCartesian.x + xIndex), std::bitset<8>((int)cellIndexCartesian.y + yIndex));
-
 			if (SPACE_FILLING_CURVE == "HILBERT") neighborCellIndex = xy2d(HILBER_CURVE_LEVEL, (int)cellIndexCartesian.x, (int)cellIndexCartesian.y);
 
 			auto iterator = std::find_if(compactCellArray.begin(), compactCellArray.end(), [&](CompactCell& c) { return c.cell == neighborCellIndex; });
@@ -127,27 +124,33 @@ void NeighborSearch::compressedNeighborSearch() {
 				int firstParticleIndex = compactCellArray[index].particle;
 				int lastParticleIndex = 0;
 
-				if (index >= compactCellArray.size() - 1) lastParticleIndex = fluidParticles->size() - 1;
+				if (index >= compactCellArray.size() - 1) lastParticleIndex = particles->size() - 1;
 				else lastParticleIndex = compactCellArray[index + 1].particle;
 
 				//For each particle k in the computed particle range
-				for (size_t k = currentCell.particle; k < fluidParticles->size(); k++)
+				for (size_t k = currentCell.particle; k < particles->size(); k++)
 				{
-					std::shared_ptr<Particle> &currentParticle = fluidParticles->at(k);
+					std::shared_ptr<Particle> &currentParticle = particles->at(k);
 
 					if (currentParticle->gridCellIndex != cellIndex) break;
 
 					//For each particle l in the computed particle range
 					for (int l = firstParticleIndex; l < lastParticleIndex; l++)
 					{
-						std::shared_ptr<Particle> &potentialNeighborParticle = fluidParticles->at(l);
+						std::shared_ptr<Particle> &potentialNeighborParticle = particles->at(l);
 
 						up::Vec2 neighborDistance = currentParticle->position_current - potentialNeighborParticle->position_current;
 						float distance = neighborDistance.length();
 
 						if (distance < 2 * KERNEL_SUPPORT)
 						{
-							currentParticle->neighbors.push_back(potentialNeighborParticle);
+							if (potentialNeighborParticle->isBoundary) 
+							{
+								currentParticle->neighborsBoundary.push_back(potentialNeighborParticle);
+							}
+							else {
+								currentParticle->neighbors.push_back(potentialNeighborParticle);
+							}
 						}
 					}
 				}
