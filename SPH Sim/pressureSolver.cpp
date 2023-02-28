@@ -31,9 +31,8 @@ void PressureSolver::compute() {
 	}
 	
 	//Iteration l
-	float densityErrorAvg = 100000.f;
+	float densityErrorAvg = INFINITY;
 	int numIterations = 0;
-	int MIN_ITERATIONS = 2;
 
 	//Set min densityErrorAvg to break loop
 	//Define min number of iterations
@@ -63,18 +62,21 @@ void PressureSolver::compute() {
 			float negVelocityDivergence = computeDivergence(p);
 			p->negVelocityDivergence = negVelocityDivergence;
 
-			if (p->diagonalElement != 0 && p->neighbors.size() > 0) {
+			if (p->diagonalElement != 0 && (p->neighbors.size() > 0 || p->neighborsBoundary.size() > 0)) {
 				updatePressure(p);
+				if (p->theOne) std::cout << "Pressure: " << p->pressure << std::endl;
 			}
 
 			float predictedDensityError = std::max(p->negVelocityDivergence - p->predictedDensityError, 0.f);
 
 			densityErrorAvg += predictedDensityError;
+
+			if (p->theOne) std::cout << "Predicted density error: " << predictedDensityError << std::endl;
 		}
 
 		//Divide by rest density of fluid to normalize the change of volume
 		densityErrorAvg /= PARTICLE_REST_DENSITY;
-		densityErrorAvg /= 10;
+		densityErrorAvg /= 2;
 		std::cout << "Density error avg: " << densityErrorAvg << std::endl;
 		numIterations++;
 	}

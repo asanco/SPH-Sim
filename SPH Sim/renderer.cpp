@@ -112,7 +112,7 @@ void Renderer::ProcessEvents()
 			if (event.mouseButton.button == sf::Mouse::Right) {
 				m_solver.addParticle((float)event.mouseButton.x, (float)event.mouseButton.y, false, sf::Color::Green, true);
 			}
-			//if (event.mouseButton.button == sf::Mouse::Left) handleAddWall(solver, (float)event.mouseButton.x, (float)event.mouseButton.y);
+			if (event.mouseButton.button == sf::Mouse::Left) m_solver.handleAddWall((float)event.mouseButton.x, (float)event.mouseButton.y);
 			break;
 		default:
 			break;

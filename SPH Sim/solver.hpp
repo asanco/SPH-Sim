@@ -18,11 +18,10 @@
 class Solver {
 
 public:
-	Solver(float dt);
+	Solver();
 	//Solver constant parameters
 	bool updating = true;
 	bool stepUpdate = false;
-	static constexpr float STIFFNESS = 200.f;
 	static constexpr float PARTICLE_MASS = 100.f;
 	static constexpr float KERNEL_SUPPORT = 10.f;
 	static constexpr float VISCOSITY = 50.f;
@@ -33,9 +32,10 @@ public:
 	static constexpr int DIMENSION = 2;
 
 	static constexpr float radius = 300.0f;
-	
+
 	bool hasLiquidParticle;
 	up::Vec2 centerPosition;
+	up::Vec2 initialWallPoint{ -1.f, -1.f };
 
 	up::Vec2 GRAVITY;
 
@@ -46,14 +46,15 @@ public:
 	float kernelFunction(float distance);
 	up::Vec2 kernelGradient(up::Vec2 distance);
 	float kernelLaplacian(float distance);
-	void computeForces(void);
+	void computeNonPressureForces(void);
 	void updatePositions(float dt);
 	void addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, bool isTheOne = false);
 	void initializeBoundaryParticles();
 	void initializeLiquidParticles(int initialParticles);
 	void applyPressureForce();
+	void handleAddWall(float positionX, float positionY);
 
 private:
-	float dt;
+	float dt = 0.001f;
 	std::vector<std::shared_ptr <SolverBase>> solvers;
 };

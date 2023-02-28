@@ -13,6 +13,8 @@ public:
 	void compute() override;
 
 private:
+	int MIN_ITERATIONS = 2;
+
 	std::vector<std::shared_ptr<Particle>> *particles;
 
 	float computeSourceTerm(std::shared_ptr<Particle> pi);

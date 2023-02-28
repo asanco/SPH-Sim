@@ -4,10 +4,12 @@
 
 #include <math.h>
 #include <iostream>
+#include <algorithm>
+#include <execution>
 
-Solver::Solver(float dt)
-	: dt(dt),
-	hasLiquidParticle(false), 
+
+Solver::Solver()
+	: hasLiquidParticle(false), 
 	centerPosition({ 600.0f, 350.0f }),
 	GRAVITY({ 0.f, 1000.0f }),
 	particles({})
@@ -18,7 +20,7 @@ Solver::Solver(float dt)
 
 void Solver::update()
 {
-	if (stepUpdate) updating = false;
+	if (!stepUpdate && !updating) updating = true;
 	if (!updating) return;
 
 	//Neighbor search
@@ -26,11 +28,15 @@ void Solver::update()
 	//Density calculation
 	computeDensity();
 	//Non pressure acceleration and predicted velocity calculation
-	computeForces();
+	computeNonPressureForces();
 	//Pressure solver
 	solvers.at(1)->compute();
+	//Pressure acceleration
+	applyPressureForce();
 	//Time integration
 	updatePositions(dt);
+
+	if (stepUpdate) updating = false;
 }
 
 //Computes density
@@ -63,10 +69,9 @@ void Solver::computeDensity()
 				sphDensity += PARTICLE_MASS * kernelFunction(distance);
 			}
 
-			//if(!pi->isBoundary) std::cout << "Density: " << sphDensity << std::endl;
-
+			//if(pi->theOne) std::cout << "Density: " << sphDensity << std::endl;
+			
 			pi->density = sphDensity;
-			//pi->pressure = std::max(STIFFNESS * ((pi->density / PARTICLE_REST_DENSITY) - 1.0f), 0.f);
 		});
 }
 
@@ -111,7 +116,7 @@ float Solver::kernelLaplacian(float distance)
 //Computes non-pressure accelerations (including gravity)
 //Computes predicted velocitiy
 //Only applies to liquid particles
-void Solver::computeForces()
+void Solver::computeNonPressureForces()
 {
 	std::for_each(
 		std::execution::par,
@@ -151,7 +156,7 @@ void Solver::applyPressureForce() {
 			if (pi->isBoundary) return;
 
 			//Sum pressure accelerations
-			pi->forces += pi->pressureAcceleration * PARTICLE_MASS;
+			pi->forces -= pi->pressureAcceleration * PARTICLE_MASS;
 		});
 }
 
@@ -183,7 +188,7 @@ void Solver::addParticle(float starting_x, float starting_y, bool isBoundary, sf
 
 void Solver::initializeBoundaryParticles()
 {
-	for (float i = 0; i < 360; i += .1f)
+	for (float i = 0; i < 360; i += .9f)
 	{
 		float posX = cos(i) * radius + centerPosition.x;
 		float posY = sin(i) * radius + centerPosition.y;
@@ -208,5 +213,33 @@ void Solver::initializeLiquidParticles(int initialParticles)
 			xPosition = minXPos;
 			yPosition += PARTICLE_RADIUS * 2;
 		}
+	}
+}
+
+void Solver::handleAddWall(float positionX, float positionY)
+{
+	addParticle(positionX, positionY, true, sf::Color::Magenta);
+
+	if (initialWallPoint.x == -1.f)
+	{
+		initialWallPoint = { positionX, positionY };
+	}
+	else
+	{
+		up::Vec2 finalWallPoint = { positionX, positionY };
+		up::Vec2 wallVector = finalWallPoint - initialWallPoint;
+		up::Vec2 wallVectorNormalized = wallVector / wallVector.length();
+
+		int particlesToAdd = (int)floor(wallVector.length() / (PARTICLE_RADIUS * 2));
+
+		for (int i = 0; i < particlesToAdd; i++)
+		{
+			float posX = i * wallVector.x / particlesToAdd + initialWallPoint.x;
+			float posY = i * wallVector.y / particlesToAdd + initialWallPoint.y;
+
+			addParticle(posX, posY, true, sf::Color::Magenta);
+		}
+
+		initialWallPoint = { -1.f, -1.f };
 	}
 }
