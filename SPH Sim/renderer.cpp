@@ -37,7 +37,7 @@ void Renderer::RenderSimulation() {
 
 	sf::Text text;
 	text.setFont(font);
-	text.setCharacterSize(26);
+	text.setCharacterSize(16);
 	text.setFillColor(sf::Color::Black);
 	text.move(sf::Vector2f(20.0f, 20.f));
 
@@ -45,10 +45,6 @@ void Renderer::RenderSimulation() {
 	std::string screenText = "Neighbor search time (ms): ";
 	screenText.append("\nNumber of particles:" + std::to_string(m_solver.particles.size()));
 	screenText.append("\nUpdating: " + isUpdatingText);
-
-	text.setString(screenText);
-
-	m_window.draw(text);
 
 	for (auto & p : m_solver.particles)
 	{
@@ -64,9 +60,14 @@ void Renderer::RenderSimulation() {
 			particleCellText.setFillColor(sf::Color::White);
 			particleCellText.setPosition(p->position_current.x, p->position_current.y);
 			m_window.draw(particleCellText);
+
+			screenText.append("\nPressure acceleration: " + std::to_string(p->pressureAcceleration.x) + ", " + std::to_string(p->pressureAcceleration.y));
 		}
 	}
 
+	text.setString(screenText);
+
+	m_window.draw(text);
 	m_window.display();
 
 	if (isRecording) {
@@ -109,8 +110,11 @@ void Renderer::ProcessEvents()
 			else if (event.key.code == sf::Keyboard::Space) m_solver.stepUpdate = !m_solver.stepUpdate;
 			break;
 		case sf::Event::MouseButtonPressed:
-			if (event.mouseButton.button == sf::Mouse::Right) {
+			if (event.mouseButton.button == sf::Mouse::Middle) {
 				m_solver.addParticle((float)event.mouseButton.x, (float)event.mouseButton.y, false, sf::Color::Green, true);
+			}
+			if (event.mouseButton.button == sf::Mouse::Right) {
+				m_solver.addParticle((float)event.mouseButton.x, (float)event.mouseButton.y, false, sf::Color::Blue);
 			}
 			if (event.mouseButton.button == sf::Mouse::Left) m_solver.handleAddWall((float)event.mouseButton.x, (float)event.mouseButton.y);
 			break;
