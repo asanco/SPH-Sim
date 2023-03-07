@@ -18,8 +18,11 @@ public:
 	up::Vec2 forces = { 0.0f, 0.0f };
 	up::Vec2 predictedVelocity = { 0.f, 0.f };
 
+	static constexpr float MASS = 100.f;
+
 	float density = 1.0f;
 	float pressure = 0.0f;
+	float volume = MASS / density;
 
 	uint16_t gridCellIndex;
 	std::vector<std::shared_ptr<Particle2>> neighbors = {};

@@ -42,8 +42,8 @@ void Renderer::RenderSimulation() {
 	text.move(sf::Vector2f(20.0f, 20.f));
 
 	std::string isUpdatingText = m_solver.updating ? "true" : "false";
-	std::string screenText = "Neighbor search time (ms): ";
-	screenText.append("\nNumber of particles:" + std::to_string(m_solver.particles.size()));
+	std::string screenText = "Number of fluid particles: " + std::to_string(m_solver.numFluidParticles);
+	screenText.append("\nTotal number of particles:" + std::to_string(m_solver.particles.size()));
 	screenText.append("\nUpdating: " + isUpdatingText);
 
 	for (auto & p : m_solver.particles)
@@ -62,6 +62,12 @@ void Renderer::RenderSimulation() {
 			m_window.draw(particleCellText);
 
 			screenText.append("\nPressure acceleration: " + std::to_string(p->pressureAcceleration.x) + ", " + std::to_string(p->pressureAcceleration.y));
+			screenText.append("\nDensity: " + std::to_string(p->density));
+			screenText.append("\nPredicted density error: " + std::to_string(p->predictedDensityError));
+			screenText.append("\nDiagonal element: " + std::to_string(p->diagonalElement));
+			screenText.append("\nNeighbors: " + std::to_string(p->neighbors.size() + p->neighborsBoundary.size()));
+			screenText.append("\nVolume: " + std::to_string(p->volume));
+			screenText.append("\nRadius: " + std::to_string(p->radius));
 		}
 	}
 
@@ -110,10 +116,10 @@ void Renderer::ProcessEvents()
 			else if (event.key.code == sf::Keyboard::Space) m_solver.stepUpdate = !m_solver.stepUpdate;
 			break;
 		case sf::Event::MouseButtonPressed:
-			if (event.mouseButton.button == sf::Mouse::Middle) {
+			if (event.mouseButton.button == sf::Mouse::Right) {
 				m_solver.addParticle((float)event.mouseButton.x, (float)event.mouseButton.y, false, sf::Color::Green, true);
 			}
-			if (event.mouseButton.button == sf::Mouse::Right) {
+			if (event.mouseButton.button == sf::Mouse::Middle) {
 				m_solver.addParticle((float)event.mouseButton.x, (float)event.mouseButton.y, false, sf::Color::Blue);
 			}
 			if (event.mouseButton.button == sf::Mouse::Left) m_solver.handleAddWall((float)event.mouseButton.x, (float)event.mouseButton.y);

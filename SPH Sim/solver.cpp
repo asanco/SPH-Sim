@@ -9,14 +9,15 @@
 
 
 Solver::Solver()
-	: hasLiquidParticle(false), 
+	: 
 	centerPosition({ 600.0f, 350.0f }),
 	GRAVITY({ 0.f, 1000.0f }),
 	particles({})
 {
 	solvers.push_back(std::move(std::make_shared<NeighborSearch>("ZIndex", &particles)));
-	solvers.push_back(std::move(std::make_shared<PressureSolver>(&particles)));
+	solvers.push_back(std::move(std::make_shared<PressureSolver>(&particles, &numFluidParticles)));
 }
+
 
 void Solver::update()
 {
@@ -39,46 +40,10 @@ void Solver::update()
 	if (stepUpdate) updating = false;
 }
 
-//Computes density
-//TODO: Append neighbors to one list
-void Solver::computeDensity()
-{
-	std::for_each(
-		std::execution::par,
-		particles.begin(),
-		particles.end(),
-		[this](auto&& pi)
-		{
-			//if (pi->isBoundary) return;
-
-			float sphDensity = 0.f;
-
-			for (auto &pj : pi->neighbors)
-			{
-				up::Vec2 distanceVector = pj->position_current - pi->position_current;
-				float distance = distanceVector.length();
-
-				sphDensity += PARTICLE_MASS * kernelFunction(distance);
-			}
-
-			for (auto &pj : pi->neighborsBoundary)
-			{
-				up::Vec2 distanceVector = pj->position_current - pi->position_current;
-				float distance = distanceVector.length();
-
-				sphDensity += PARTICLE_MASS * kernelFunction(distance);
-			}
-
-			//if(pi->theOne) std::cout << "Density: " << sphDensity << std::endl;
-			
-			pi->density = sphDensity;
-		});
-}
-
 float Solver::kernelFunction(float distance)
 {
 	float q = distance / KERNEL_SUPPORT;
-	float alpha = 5.f / (14.f * (float) M_PI * pow(KERNEL_SUPPORT, 2));
+	float alpha = 5.f / (14.f * (float)M_PI * pow(KERNEL_SUPPORT, 2));
 	float t1 = std::max(1.f - q, 0.f);
 	float t2 = std::max(2.f - q, 0.f);
 
@@ -87,30 +52,51 @@ float Solver::kernelFunction(float distance)
 	else return 0;
 }
 
-up::Vec2 Solver::kernelGradient(up::Vec2 distance)
-{
-	up::Vec2 derivQ = distance * KERNEL_SUPPORT;
-	float q = distance.length() / KERNEL_SUPPORT;
-	float alpha = 5.f / (14.f * (float) M_PI * pow(KERNEL_SUPPORT, 2));
-	float t1 = std::max(1.f - q, 0.f);
-	float t2 = std::max(2.f - q, 0.f);
-
-	if (0 <= q && q < 1) return alpha * derivQ * (-3 * pow(t2, 2) - 12 * pow(t1, 2));
-	else if (1 <= q && q < 2) return  alpha * derivQ * -3 * pow(t2, 2);
-	else return { 0.f, 0.f };
-}
-
 float Solver::kernelLaplacian(float distance)
 {
 	float derivQ = distance * KERNEL_SUPPORT;
 	float q = distance / KERNEL_SUPPORT;
-	float alpha = 5.f / (14.f * (float) M_PI * pow(KERNEL_SUPPORT, 2));
+	float alpha = 5.f / (14.f * (float)M_PI * pow(KERNEL_SUPPORT, 2));
 	float t1 = std::max(1.f - q, 0.f);
 	float t2 = std::max(2.f - q, 0.f);
 
 	if (0 <= q && q < 1) return alpha * derivQ * (-3 * pow(t2, 2) - 12 * pow(t1, 2));
 	else if (1 <= q && q < 2) return alpha * derivQ * -3 * pow(t2, 2);
-	else return 0.f; 
+	else return 0.f;
+}
+
+//Computes density
+void Solver::computeDensity()
+{
+	std::for_each(
+		std::execution::par,
+		particles.begin(),
+		particles.end(),
+		[this](auto&& pi)
+		{
+			if (pi->isBoundary) return;
+
+			float sphDensity = 0.f;
+
+			for (auto &pj : pi->neighbors)
+			{
+				up::Vec2 distanceVector = pi->position_current - pj->position_current;
+				float distance = distanceVector.length();
+
+				sphDensity += pj->MASS * kernelFunction(distance);
+			}
+
+			for (auto &pj : pi->neighborsBoundary)
+			{
+				up::Vec2 distanceVector = pi->position_current - pj->position_current;
+				float distance = distanceVector.length();
+
+				sphDensity += pj->MASS * kernelFunction(distance);
+			}
+			
+			pi->density = sphDensity;
+			pi->updateVolume();
+		});
 }
 
 //Computes non-pressure accelerations (including gravity)
@@ -130,18 +116,17 @@ void Solver::computeNonPressureForces()
 
 			for (auto &pj : pi->neighbors)
 			{
-				up::Vec2 distanceVector = pj->position_current - pi->position_current;
-				up::Vec2 positionDiff = pi->position_current - pj->position_current;
-				up::Vec2 velocityDiff = pj->velocity - pi->velocity;
+				up::Vec2 distanceVector = pi->position_current - pj->position_current;
+				up::Vec2 velocityDiff = pi->velocity - pj->velocity;
 
 				float distance = distanceVector.length();
 
 				// compute viscosity force contribution (non-pressure acceleration)
-				fviscosity -= PARTICLE_MASS * velocityDiff / pj->density * kernelLaplacian(distance);
+				fviscosity += pj->MASS * velocityDiff / pj->density * kernelLaplacian(distance);
 			}
 
 			//Sum non-pressure accelerations
-			pi->forces = VISCOSITY * fviscosity + GRAVITY * PARTICLE_MASS;
+			pi->forces = VISCOSITY * fviscosity + GRAVITY * pi->MASS;
 			pi->predictedVelocity = pi->velocity + dt * pi->forces;
 		});
 }
@@ -156,7 +141,7 @@ void Solver::applyPressureForce() {
 			if (pi->isBoundary) return;
 
 			//Sum pressure accelerations
-			pi->forces -= pi->pressureAcceleration * PARTICLE_MASS;
+			pi->forces += pi->pressureAcceleration * pi->MASS;
 		});
 }
 
@@ -177,18 +162,23 @@ void Solver::addParticle(float starting_x, float starting_y, bool isBoundary, sf
 		{ starting_x, starting_y },
 		{ starting_x, starting_y },
 		{0.f, 0.f},
-		PARTICLE_RADIUS,
+		DEFAULT_PARTICLE_MASS,
 		isBoundary,
 		color,
 		isTheOne
 	};
 
 	particles.push_back(std::make_shared<Particle>(newParticle2));
+
+	if (!isBoundary) numFluidParticles++;
 }
 
 void Solver::initializeBoundaryParticles()
 {
-	for (float i = 0; i < 360; i += .9f)
+	//Circumference formula
+	float particlesToSpawn = (float) 2*M_PI*radius/DEFAULT_PARTICLE_RADIUS;
+
+	for (float i = 0; i <= 360; i += 360/particlesToSpawn)
 	{
 		float posX = cos(i) * radius + centerPosition.x;
 		float posY = sin(i) * radius + centerPosition.y;
@@ -207,11 +197,11 @@ void Solver::initializeLiquidParticles(int initialParticles)
 	for (int i = 0; i < initialParticles; i++)
 	{
 		addParticle(xPosition, yPosition, false, sf::Color::Blue);
-		if (xPosition - minXPos < radius) xPosition += PARTICLE_RADIUS * 2;
+		if (xPosition - minXPos < radius) xPosition += DEFAULT_PARTICLE_RADIUS * 2;
 		else
 		{
 			xPosition = minXPos;
-			yPosition += PARTICLE_RADIUS * 2;
+			yPosition += DEFAULT_PARTICLE_RADIUS * 2;
 		}
 	}
 }
@@ -230,7 +220,7 @@ void Solver::handleAddWall(float positionX, float positionY)
 		up::Vec2 wallVector = finalWallPoint - initialWallPoint;
 		up::Vec2 wallVectorNormalized = wallVector / wallVector.length();
 
-		int particlesToAdd = (int)floor(wallVector.length() / (PARTICLE_RADIUS * 2));
+		int particlesToAdd = (int) floor(wallVector.length() / (DEFAULT_PARTICLE_RADIUS * 2));
 
 		for (int i = 0; i < particlesToAdd; i++)
 		{

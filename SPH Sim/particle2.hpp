@@ -1,16 +1,19 @@
 #pragma once
 
+#define _USE_MATH_DEFINES
+
 #include <SFML/Graphics.hpp>
 #include "vector2.hpp"
 #include <vector>
 #include <memory>
+#include <math.h>
 
 struct Particle {
 
 	up::Vec2 position_current;
 	up::Vec2 position_old;
 	up::Vec2 acceleration;
-	float radius;
+	float MASS;
 	bool isBoundary;
 	sf::Color color;
 	bool theOne = false;
@@ -23,8 +26,11 @@ struct Particle {
 	float diagonalElement;
 	float predictedDensityError;
 	float negVelocityDivergence;
+
 	float density = 1.0f;
 	float pressure = 0.0f;
+	float volume = MASS / density;
+	float radius = sqrt(volume / (float) M_PI);
 
 	uint16_t gridCellIndex;
 	std::vector<std::shared_ptr<Particle>> neighbors = {};
@@ -51,6 +57,13 @@ void updatePositionEuler(float dt)
 void accelerate(up::Vec2 acc)
 {
 	acceleration += acc;
+}
+
+void updateVolume() 
+{
+	volume = MASS / density;
+	//Area of a circle formula A = pi*r^2
+	radius = sqrt(volume / (float)M_PI);
 }
 
 };

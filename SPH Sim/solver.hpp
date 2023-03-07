@@ -1,5 +1,7 @@
 #pragma once
 
+#define _USE_MATH_DEFINES
+
 //#include "particle.hpp"
 #include "particle2.hpp"
 #include "compactCell.hpp"
@@ -22,18 +24,18 @@ public:
 	//Solver constant parameters
 	bool updating = true;
 	bool stepUpdate = false;
-	static constexpr float PARTICLE_MASS = 100.f;
-	static constexpr float KERNEL_SUPPORT = 10.f;
+	static constexpr float KERNEL_SUPPORT = 6.f;
 	static constexpr float VISCOSITY = 50.f;
-	static constexpr float BOUND_DAMPING = -0.5f;
 	static constexpr float SIM_WIDTH = 1200.f;
 	static constexpr float SIM_HEIGHT = 700.f;
-	static constexpr float PARTICLE_RADIUS = KERNEL_SUPPORT/2;
 	static constexpr int DIMENSION = 2;
+	
+	static constexpr float DEFAULT_PARTICLE_MASS = 20.f;
+	float DEFAULT_PARTICLE_RADIUS = sqrt(DEFAULT_PARTICLE_MASS / (float) M_PI);
 
 	static constexpr float radius = 300.0f;
 
-	bool hasLiquidParticle;
+	int numFluidParticles = 0;
 	up::Vec2 centerPosition;
 	up::Vec2 initialWallPoint{ -1.f, -1.f };
 
@@ -44,7 +46,6 @@ public:
 	void update();
 	void computeDensity();
 	float kernelFunction(float distance);
-	up::Vec2 kernelGradient(up::Vec2 distance);
 	float kernelLaplacian(float distance);
 	void computeNonPressureForces(void);
 	void updatePositions(float dt);

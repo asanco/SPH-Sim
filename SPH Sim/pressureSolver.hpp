@@ -9,11 +9,12 @@
 class PressureSolver: public SolverBase {
 
 public:
-	PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles);
+	PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles, int *_numFluidParticles);
 	void compute() override;
 
 private:
 	int MIN_ITERATIONS = 2;
+	int *numFluidParticles;
 
 	std::vector<std::shared_ptr<Particle>> *particles;
 
