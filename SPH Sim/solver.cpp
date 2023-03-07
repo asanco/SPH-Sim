@@ -126,6 +126,7 @@ void Solver::computeNonPressureForces()
 			}
 
 			//Sum non-pressure accelerations
+			pi->viscosityAcceleration = VISCOSITY * fviscosity;
 			pi->forces = VISCOSITY * fviscosity + GRAVITY * pi->MASS;
 			pi->predictedVelocity = pi->velocity + dt * pi->forces;
 		});

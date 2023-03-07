@@ -25,7 +25,7 @@ public:
 	bool updating = true;
 	bool stepUpdate = false;
 	static constexpr float KERNEL_SUPPORT = 6.f;
-	static constexpr float VISCOSITY = 50.f;
+	static constexpr float VISCOSITY = 10.f;
 	static constexpr float SIM_WIDTH = 1200.f;
 	static constexpr float SIM_HEIGHT = 700.f;
 	static constexpr int DIMENSION = 2;

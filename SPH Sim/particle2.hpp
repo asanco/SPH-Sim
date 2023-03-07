@@ -22,6 +22,7 @@ struct Particle {
 	up::Vec2 forces = { 0.0f, 0.0f };
 	up::Vec2 predictedVelocity = { 0.f, 0.f };
 	up::Vec2 pressureAcceleration = { 0.f, 0.f };
+	up::Vec2 viscosityAcceleration = { 0.f, 0.f };
 
 	float diagonalElement;
 	float predictedDensityError;

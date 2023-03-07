@@ -60,14 +60,17 @@ void Renderer::RenderSimulation() {
 			particleCellText.setFillColor(sf::Color::White);
 			particleCellText.setPosition(p->position_current.x, p->position_current.y);
 			m_window.draw(particleCellText);
-
-			screenText.append("\nPressure acceleration: " + std::to_string(p->pressureAcceleration.x) + ", " + std::to_string(p->pressureAcceleration.y));
-			screenText.append("\nDensity: " + std::to_string(p->density));
-			screenText.append("\nPredicted density error: " + std::to_string(p->predictedDensityError));
-			screenText.append("\nDiagonal element: " + std::to_string(p->diagonalElement));
+			screenText.append("\n");
+			screenText.append("\nNeighbor search index: " + std::to_string(p->gridCellIndex));
 			screenText.append("\nNeighbors: " + std::to_string(p->neighbors.size() + p->neighborsBoundary.size()));
+			screenText.append("\nDensity: " + std::to_string(p->density));
 			screenText.append("\nVolume: " + std::to_string(p->volume));
 			screenText.append("\nRadius: " + std::to_string(p->radius));
+			screenText.append("\nPredicted velocity: " + std::to_string((int) p->predictedVelocity.x) + ", " + std::to_string((int) p->predictedVelocity.y));
+			screenText.append("\nPredicted density error: " + std::to_string(p->predictedDensityError));
+			screenText.append("\nDiagonal element: " + std::to_string(p->diagonalElement));
+			screenText.append("\nPressure acceleration: " + std::to_string((int) p->pressureAcceleration.x) + ", " + std::to_string((int) p->pressureAcceleration.y));
+			screenText.append("\nViscosity acceleration: " + std::to_string((int) p->viscosityAcceleration.x) + ", " + std::to_string((int) p->viscosityAcceleration.y));
 		}
 	}
 
@@ -110,6 +113,7 @@ void Renderer::ProcessEvents()
 			else if (event.key.code == sf::Keyboard::I) showInfo = !showInfo;
 			else if (event.key.code == sf::Keyboard::R) {
 				m_solver.particles.clear();
+				m_solver.numFluidParticles = 0;
 				m_solver.initializeBoundaryParticles();
 			}
 			else if (event.key.code == sf::Keyboard::Right) m_solver.updating = true;

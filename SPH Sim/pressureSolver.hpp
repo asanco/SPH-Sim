@@ -16,6 +16,10 @@ private:
 	int MIN_ITERATIONS = 2;
 	int *numFluidParticles;
 
+	float gamma = 1.f;
+	float dtSquared = dt * dt;
+	float restDensitySquared = PARTICLE_REST_DENSITY * PARTICLE_REST_DENSITY;
+
 	std::vector<std::shared_ptr<Particle>> *particles;
 
 	float computeSourceTerm(std::shared_ptr<Particle> pi);

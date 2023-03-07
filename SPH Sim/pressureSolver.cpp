@@ -19,9 +19,9 @@ void PressureSolver::compute() {
 
 		float sourceTerm = computeSourceTerm(p);
 		float diagonalElement = computeDiagonal(p);
-		
-		p->diagonalElement = diagonalElement;
+
 		p->predictedDensityError = sourceTerm;
+		p->diagonalElement = diagonalElement;
 		p->pressure = 0.f;
 	}
 	
@@ -71,7 +71,7 @@ void PressureSolver::compute() {
 	}
 }
 
-//Check if it changes sign before hitting boundary
+//Check if it changes sign before hitting boundary = checked
 //Matrix vector product should converge to the source term
 float PressureSolver::computeSourceTerm(std::shared_ptr<Particle> pi) {
 	float summedTerm1 = 0.f;
@@ -83,15 +83,14 @@ float PressureSolver::computeSourceTerm(std::shared_ptr<Particle> pi) {
 		up::Vec2 distanceVector = pi->position_current - pj->position_current;
 		up::Vec2 gradient = kernelGradient(distanceVector);
 		up::Vec2 velocityDiff = pi->predictedVelocity - pj->predictedVelocity;
-		summedTerm1 += pj->MASS * velocityDiff.dot(gradient);
+		summedTerm1 += (pj->MASS * velocityDiff).dot(gradient);
 	}
 
 	for (auto &pj : pi->neighborsBoundary)
 	{
 		up::Vec2 distanceVector = pi->position_current - pj->position_current;
 		up::Vec2 gradient = kernelGradient(distanceVector);
-		up::Vec2 velocityDiff = (pi->predictedVelocity - pj->velocity) * (dt);
-		summedTerm2 += pj->MASS * velocityDiff.dot(gradient);
+		summedTerm2 += (pj->MASS * pi->predictedVelocity).dot(gradient);
 	}
 
 	summedTerm1 = dt * summedTerm1;
@@ -102,11 +101,10 @@ float PressureSolver::computeSourceTerm(std::shared_ptr<Particle> pi) {
 	return sourceTerm;
 }
 
-//Check if correct
+//Check if correct 
 //Play around with gamma
 float PressureSolver::computeDiagonal(std::shared_ptr<Particle> pi)
 {
-	float gamma = 1.f;
 	float diagonalElement;
 	up::Vec2 summedTerm1 = { 0.f, 0.f };
 	up::Vec2 summedTerm2 = { 0.f, 0.f };
@@ -114,16 +112,13 @@ float PressureSolver::computeDiagonal(std::shared_ptr<Particle> pi)
 	float summedTerm4 = 0.f;
 	float summedTerm5 = 0.f;
 
-	float dtSquared = dt * dt;
-	float restDensitySquared = PARTICLE_REST_DENSITY * PARTICLE_REST_DENSITY;
-
 	//Summed term 1
 	for (auto &pj : pi->neighbors)
 	{
 		up::Vec2 distanceVectorij = pi->position_current - pj->position_current;
 		up::Vec2 gradientij = kernelGradient(distanceVectorij);
 
-		summedTerm1 += pj->MASS / restDensitySquared * gradientij;
+		summedTerm1 += (pj->MASS / restDensitySquared) * gradientij;
 	}
 
 	//Summed term 2
@@ -132,7 +127,7 @@ float PressureSolver::computeDiagonal(std::shared_ptr<Particle> pi)
 		up::Vec2 distanceVectorij = pi->position_current - pj->position_current;
 		up::Vec2 gradientij = kernelGradient(distanceVectorij);
 
-		summedTerm2 += pj->MASS / restDensitySquared * gradientij;
+		summedTerm2 += (pj->MASS / restDensitySquared) * gradientij;
 	}
 
 	//Summed term 3
@@ -141,18 +136,18 @@ float PressureSolver::computeDiagonal(std::shared_ptr<Particle> pi)
 		up::Vec2 distanceVectorij = pi->position_current - pj->position_current;
 		up::Vec2 gradientij = kernelGradient(distanceVectorij);
 
-		summedTerm3 += pj->MASS * (-1 * summedTerm1 - 2 * gamma * summedTerm2).dot(gradientij);
+		summedTerm3 += (pj->MASS * (-1 * summedTerm1 - 2 * gamma * summedTerm2)).dot(gradientij);
 	}
 
 	//Summed term 4
 	for (auto &pj : pi->neighbors)
 	{
-		up::Vec2 distanceVectorji = pj->position_current - pi->position_current;
 		up::Vec2 distanceVectorij = pi->position_current - pj->position_current;
-		up::Vec2 gradientji = kernelGradient(distanceVectorji);
+		up::Vec2 distanceVectorji = pj->position_current - pi->position_current;
 		up::Vec2 gradientij = kernelGradient(distanceVectorij);
+		up::Vec2 gradientji = kernelGradient(distanceVectorji);
 
-		summedTerm4 += pj->MASS * ((pj->MASS / restDensitySquared) * gradientji).dot(gradientij);
+		summedTerm4 += (pj->MASS * ((pj->MASS / restDensitySquared) * gradientji)).dot(gradientij);
 	}
 
 	//Summed term 5
@@ -161,7 +156,7 @@ float PressureSolver::computeDiagonal(std::shared_ptr<Particle> pi)
 		up::Vec2 distanceVectorij = pi->position_current - pj->position_current;
 		up::Vec2 gradientij = kernelGradient(distanceVectorij);
 
-		summedTerm5 += pj->MASS * (-1 * summedTerm1 - 2 * gamma * summedTerm2).dot(gradientij);
+		summedTerm5 += (pj->MASS * (-1 * summedTerm1 - 2 * gamma * summedTerm2)).dot(gradientij);
 	}
 
 	diagonalElement = dtSquared * (summedTerm3 + summedTerm4 + summedTerm5);
@@ -175,14 +170,12 @@ up::Vec2 PressureSolver::computePressureAcceleration(std::shared_ptr<Particle> p
 	up::Vec2 summedTerm1 = { 0.f, 0.f };
 	up::Vec2 summedTerm2 = { 0.f, 0.f };
 
-	float restDensitySquared = PARTICLE_REST_DENSITY * PARTICLE_REST_DENSITY;
-
 	for (auto &pj : pi->neighbors)
 	{
 		up::Vec2 distanceVectorij = pi->position_current - pj->position_current;
 		up::Vec2 gradientij = kernelGradient(distanceVectorij);
-
-		summedTerm1 += pj->MASS * (pi->pressure / restDensitySquared + pj->pressure / restDensitySquared) * gradientij;
+		//Note: Adjust in case rest densities are different
+		summedTerm1 += pj->MASS * ((pi->pressure + pj->pressure) / restDensitySquared) * gradientij;
 	}
 
 	for (auto &pj : pi->neighborsBoundary)
@@ -194,7 +187,7 @@ up::Vec2 PressureSolver::computePressureAcceleration(std::shared_ptr<Particle> p
 	}
 
 	summedAcceleration -= summedTerm1;
-	summedAcceleration -= summedTerm2;
+	summedAcceleration -= gamma * summedTerm2;
 
 	return summedAcceleration;
 }
@@ -203,6 +196,7 @@ up::Vec2 PressureSolver::computePressureAcceleration(std::shared_ptr<Particle> p
 //Compute the divergence of the velocity change delta(ta) due to the pressure acceleration
 float PressureSolver::computeDivergence(std::shared_ptr<Particle> pi) 
 {
+	float divergence;
 	float summedDivergence1 = 0.f;
 	float summedDivergence2 = 0.f;
 	float timeStepSquared = dt * dt;
@@ -212,7 +206,7 @@ float PressureSolver::computeDivergence(std::shared_ptr<Particle> pi)
 		up::Vec2 distanceVectorij = pi->position_current - pj->position_current;
 		up::Vec2 gradientij = kernelGradient(distanceVectorij);
 
-		summedDivergence1 += pj->MASS * (pi->pressureAcceleration - pj->pressureAcceleration).dot(gradientij);
+		summedDivergence1 += (pj->MASS * (pi->pressureAcceleration - pj->pressureAcceleration)).dot(gradientij);
 	}
 	
 	for (auto &pj : pi->neighborsBoundary)
@@ -220,15 +214,17 @@ float PressureSolver::computeDivergence(std::shared_ptr<Particle> pi)
 		up::Vec2 distanceVectorij = pi->position_current - pj->position_current;
 		up::Vec2 gradientij = kernelGradient(distanceVectorij);
 
-		summedDivergence2 += pj->MASS * (pi->pressureAcceleration).dot(gradientij);
+		summedDivergence2 += (pj->MASS * (pi->pressureAcceleration)).dot(gradientij);
 	}
 
-	return timeStepSquared * (summedDivergence1 + summedDivergence2);
+	divergence = timeStepSquared * (summedDivergence1 + summedDivergence2);
+
+	return divergence;
 }
 
 //Play around with omega value
 void PressureSolver::updatePressure(std::shared_ptr<Particle> pi) {
 	float omega = 0.5f;
 
-	pi->pressure = std::max(pi->pressure + omega * (pi->predictedDensityError - pi->negVelocityDivergence)/pi->diagonalElement, 0.f);
+	pi->pressure = std::max(pi->pressure + (omega * (pi->predictedDensityError - pi->negVelocityDivergence)/pi->diagonalElement), 0.f);
 }
