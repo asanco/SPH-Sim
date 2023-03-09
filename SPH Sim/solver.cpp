@@ -47,9 +47,7 @@ float Solver::kernelFunction(float distance)
 	float t1 = std::max(1.f - q, 0.f);
 	float t2 = std::max(2.f - q, 0.f);
 
-	if (0 <= q && q < 1) return alpha * (pow(t2, 3) - 4 * pow(t1, 3));
-	else if (1 <= q && q < 2) return alpha * pow(t2, 3);
-	else return 0;
+	return alpha * (pow(t2, 3) - 4 * pow(t1, 3));
 }
 
 float Solver::kernelLaplacian(float distance)
@@ -158,6 +156,8 @@ void Solver::updatePositions(float dt)
 		});
 }
 
+//Add with particle spacing instead of particle mass
+//Slide 11
 void Solver::addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, bool isTheOne) {
 	Particle newParticle2{
 		{ starting_x, starting_y },
@@ -191,7 +191,7 @@ void Solver::initializeBoundaryParticles()
 void Solver::initializeLiquidParticles(int initialParticles)
 {
 	float minXPos = centerPosition.x - radius / 2;
-	float minYPos = centerPosition.y - 250;
+	float minYPos = centerPosition.y + 100;
 	float xPosition = minXPos;
 	float yPosition = minYPos;
 

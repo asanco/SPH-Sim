@@ -69,7 +69,8 @@ void Renderer::RenderSimulation() {
 			screenText.append("\nPredicted velocity: " + std::to_string((int) p->predictedVelocity.x) + ", " + std::to_string((int) p->predictedVelocity.y));
 			screenText.append("\nPredicted density error: " + std::to_string(p->predictedDensityError));
 			screenText.append("\nDiagonal element: " + std::to_string(p->diagonalElement));
-			screenText.append("\nPressure acceleration: " + std::to_string((int) p->pressureAcceleration.x) + ", " + std::to_string((int) p->pressureAcceleration.y));
+			screenText.append("\nPosition: " + std::to_string((int)p->position_current.x) + ", " + std::to_string((int)p->position_current.y));
+			screenText.append("\nPressure acceleration: " + std::to_string((int)p->pressureAcceleration.x) + ", " + std::to_string((int)p->pressureAcceleration.y));
 			screenText.append("\nViscosity acceleration: " + std::to_string((int) p->viscosityAcceleration.x) + ", " + std::to_string((int) p->viscosityAcceleration.y));
 		}
 	}

@@ -24,7 +24,8 @@ public:
 	//Solver constant parameters
 	bool updating = true;
 	bool stepUpdate = false;
-	static constexpr float KERNEL_SUPPORT = 6.f;
+	//Tweak kernel support - 2 x particle spacing
+	static constexpr float KERNEL_SUPPORT = 10.f;
 	static constexpr float VISCOSITY = 10.f;
 	static constexpr float SIM_WIDTH = 1200.f;
 	static constexpr float SIM_HEIGHT = 700.f;
