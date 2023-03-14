@@ -3,7 +3,7 @@
 #define _USE_MATH_DEFINES
 
 #include <SFML/Graphics.hpp>
-#include "vector2.hpp"
+#include "helpers/vector2.hpp"
 #include <vector>
 #include <memory>
 #include <math.h>
@@ -13,7 +13,7 @@ struct Particle {
 	up::Vec2 position_current;
 	up::Vec2 position_old;
 	up::Vec2 acceleration;
-	float MASS;
+	float volume;
 	bool isBoundary;
 	sf::Color color;
 	bool theOne = false;
@@ -30,7 +30,7 @@ struct Particle {
 
 	float density = 1.0f;
 	float pressure = 0.0f;
-	float volume = MASS / density;
+	float mass = volume * density;
 	float radius = sqrt(volume / (float) M_PI);
 
 	uint16_t gridCellIndex;
@@ -62,9 +62,9 @@ void accelerate(up::Vec2 acc)
 
 void updateVolume() 
 {
-	volume = MASS / density;
+	volume = mass / density;
 	//Area of a circle formula A = pi*r^2
-	radius = sqrt(volume / (float)M_PI);
+	radius = sqrt(volume / (float) M_PI);
 }
 
 };

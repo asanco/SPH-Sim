@@ -62,7 +62,7 @@ void Renderer::RenderSimulation() {
 			m_window.draw(particleCellText);
 			screenText.append("\n");
 			screenText.append("\nNeighbor search index: " + std::to_string(p->gridCellIndex));
-			screenText.append("\nNeighbors: " + std::to_string(p->neighbors.size() + p->neighborsBoundary.size()));
+			screenText.append("\nNeighbors: " + std::to_string(p->neighbors.size()) + " fluid, " + std::to_string(p->neighborsBoundary.size()) + " boundary");
 			screenText.append("\nDensity: " + std::to_string(p->density));
 			screenText.append("\nVolume: " + std::to_string(p->volume));
 			screenText.append("\nRadius: " + std::to_string(p->radius));

@@ -1,9 +1,9 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include "compactCell.hpp"
-#include "particle2.hpp"
-#include "hilbert_curve.hpp"
-#include "solverBase.h"
+#include "helpers/compactCell.hpp"
+#include "particles/particle2.hpp"
+#include "helpers/hilbert_curve.hpp"
+#include "solvers/solverBase.hpp"
 
 #include <bitset>
 #include <execution>

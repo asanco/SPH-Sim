@@ -1,7 +1,7 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
-#include "solver.hpp"
+#include "solvers/solver.hpp"
 
 class Renderer {
 

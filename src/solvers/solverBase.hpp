@@ -1,19 +1,24 @@
 #pragma once
+#define _USE_MATH_DEFINES
 
-#include "vector2.hpp"
+#include <cmath>
+#include "helpers/vector2.hpp"
 
 class SolverBase
 {
 public:
 	SolverBase();
 	virtual ~SolverBase();
-	up::Vec2 kernelGradient(up::Vec2 distance);
+	up::Vec2 kernelGradient(up::Vec2 distanceVector);
+	up::Vec2 kernelGradient2(up::Vec2 distanceVector);
 	virtual void compute() = 0;
 
 protected:
 	static constexpr float radius = 300.0f;
 	static constexpr float KERNEL_SUPPORT = 10.f;
 	static constexpr float PARTICLE_REST_DENSITY = 1.f;
-	float dt = 0.001f;
+	float ALPHA = 5.f / (14.f * (float) M_PI * pow(KERNEL_SUPPORT, 2));
+	float dt = 0.01f;
+
 };
 

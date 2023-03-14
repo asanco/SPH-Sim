@@ -2,7 +2,7 @@
 
 #include "particle.hpp"
 #include <SFML/Graphics.hpp>
-#include "vector2.hpp"
+#include "helpers/vector2.hpp"
 #include <vector>
 #include <memory>
 

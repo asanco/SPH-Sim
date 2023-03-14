@@ -1,6 +1,6 @@
 #include <SFML/Graphics.hpp>
-#include "solver.hpp"
-#include "renderer.hpp"
+#include "solvers/solver.hpp"
+#include "renderer/renderer.hpp"
 
 //Application width and height
 const uint32_t win_width = 1200;

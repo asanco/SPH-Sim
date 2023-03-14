@@ -1,8 +1,8 @@
 #pragma once
 
-#include "compactCell.hpp"
-#include "particle2.hpp"
-#include "solverBase.h"
+#include "helpers/compactCell.hpp"
+#include "particles/particle2.hpp"
+#include "solvers/solverBase.hpp"
 
 #include <bitset>
 
