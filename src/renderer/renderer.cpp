@@ -53,6 +53,10 @@ void Renderer::RenderSimulation() {
 		shape.setFillColor(p->color);
 		shape.setPosition(p->position_current.x - p->radius, p->position_current.y - p->radius);
 
+		if (p->isTheOneNeighbor) {
+			shape.setFillColor(sf::Color::Red);
+		}
+
 		m_window.draw(shape);
 
 		if (showInfo && p->theOne) {
@@ -110,7 +114,7 @@ void Renderer::ProcessEvents()
 			else if (event.key.code == sf::Keyboard::U) m_solver.updating = !m_solver.updating;
 			if (event.key.code == sf::Keyboard::O) isRecording = !isRecording;
 			else if (event.key.code == sf::Keyboard::N) m_solver.initializeLiquidParticles(1000);
-			else if (event.key.code == sf::Keyboard::M) m_solver.initializeLiquidParticles(10);
+			else if (event.key.code == sf::Keyboard::M) m_solver.initializeLiquidParticlesTest();
 			else if (event.key.code == sf::Keyboard::I) showInfo = !showInfo;
 			else if (event.key.code == sf::Keyboard::R) {
 				m_solver.particles.clear();

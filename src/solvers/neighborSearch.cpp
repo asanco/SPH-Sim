@@ -20,10 +20,6 @@ NeighborSearch::NeighborSearch(std::string curveName, std::vector<std::shared_pt
 void NeighborSearch::compute() {
 	compressedNeighborSearchInit();
 	compressedNeighborSearch();
-
-	if (particles->size() > 0) {
-		//std::cout << fluidParticles->at(0)->neighbors.size() << std::endl;
-	}
 }
 
 void NeighborSearch::compressedNeighborSearchInit()
@@ -142,8 +138,10 @@ void NeighborSearch::compressedNeighborSearch() {
 						up::Vec2 neighborDistance = currentParticle->position_current - potentialNeighborParticle->position_current;
 						float distance = neighborDistance.length();
 
-						if (distance < 2 * KERNEL_SUPPORT)
+						if (distance < KERNEL_SUPPORT)
 						{
+							if(currentParticle->theOne && !potentialNeighborParticle->theOne) potentialNeighborParticle->isTheOneNeighbor = true;
+
 							if (potentialNeighborParticle->isBoundary) 
 							{
 								currentParticle->neighborsBoundary.push_back(potentialNeighborParticle);
@@ -151,6 +149,9 @@ void NeighborSearch::compressedNeighborSearch() {
 							else {
 								currentParticle->neighbors.push_back(potentialNeighborParticle);
 							}
+						}
+						else {
+							if (currentParticle->theOne) potentialNeighborParticle->isTheOneNeighbor = false;
 						}
 					}
 				}

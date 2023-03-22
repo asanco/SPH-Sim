@@ -17,7 +17,7 @@ protected:
 	static constexpr float radius = 300.0f;
 	static constexpr float KERNEL_SUPPORT = 10.f;
 	static constexpr float PARTICLE_REST_DENSITY = 1.f;
-	float ALPHA = 5.f / (14.f * (float) M_PI * pow(KERNEL_SUPPORT, 2));
+	float ALPHA = 5.f / (14.f * (float) M_PI * pow(KERNEL_SUPPORT/2, 2));
 	float dt = 0.01f;
 
 };

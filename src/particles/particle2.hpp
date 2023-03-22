@@ -31,7 +31,9 @@ struct Particle {
 	float density = 1.0f;
 	float pressure = 0.0f;
 	float mass = volume * density;
-	float radius = sqrt(volume / (float) M_PI);
+	float radius = sqrt(volume)/2;
+
+	bool isTheOneNeighbor = false;
 
 	uint16_t gridCellIndex;
 	std::vector<std::shared_ptr<Particle>> neighbors = {};
@@ -63,8 +65,7 @@ void accelerate(up::Vec2 acc)
 void updateVolume() 
 {
 	volume = mass / density;
-	//Area of a circle formula A = pi*r^2
-	radius = sqrt(volume / (float) M_PI);
+	radius = sqrt(volume)/2;
 }
 
 };

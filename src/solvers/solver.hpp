@@ -27,12 +27,11 @@ public:
 	//Tweak kernel support - 2 x particle spacing
 	static constexpr float PARTICLE_SPACING = 5.f;
 	static constexpr float KERNEL_SUPPORT = 10.f;
-	static constexpr float VISCOSITY = 2.f;
+	static constexpr float VISCOSITY = 0.f;
 	static constexpr float SIM_WIDTH = 1200.f;
 	static constexpr float SIM_HEIGHT = 700.f;
 	static constexpr int DIMENSION = 2;
-	static constexpr float DEFAULT_PARTICLE_MASS = 20.f;
-	float DEFAULT_PARTICLE_RADIUS = sqrt(DEFAULT_PARTICLE_MASS / (float) M_PI);
+
 	static constexpr float radius = 300.0f;
 
 	int numFluidParticles = 0;
@@ -53,12 +52,13 @@ public:
 	void addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, bool isTheOne = false);
 	void initializeBoundaryParticles();
 	void initializeLiquidParticles(int initialParticles);
+	void initializeLiquidParticlesTest();
 	void applyPressureForce();
 	void handleAddWall(float positionX, float positionY);
 
 private:
 	float dt = 0.01f;
 	std::vector<std::shared_ptr <SolverBase>> solvers;
-	float ALPHA = 5.f / (14.f * (float) M_PI * pow(KERNEL_SUPPORT, 2));
+	float ALPHA = 5.f / (14.f * (float) M_PI * PARTICLE_SPACING * PARTICLE_SPACING);
 
 };
