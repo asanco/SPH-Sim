@@ -31,7 +31,7 @@ void PressureSolver::compute() {
 
 	//Set min densityErrorAvg to break loop
 	//Define min number of iterations
-	while (densityErrorAvg > 0.01f || numIterations < MIN_ITERATIONS) 
+	while (densityErrorAvg > 0.001f || numIterations < MIN_ITERATIONS) 
 	{
 		densityErrorAvg = 0.f;
 

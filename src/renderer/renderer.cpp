@@ -50,9 +50,18 @@ void Renderer::RenderSimulation() {
 	{
 		sf::CircleShape shape(p->radius);
 
-		shape.setFillColor(p->color);
-		shape.setPosition(p->position_current.x - p->radius, p->position_current.y - p->radius);
+		if (p->isBoundary){
+			shape.setFillColor(p->color);
+		}
+		else {
+			float maxPressureValue = 100.f;
+			float particlePressure = p->pressureAcceleration.length() > maxPressureValue ? maxPressureValue : p->pressureAcceleration.length();
+			sf::Color pressureColor = sf::Color(particlePressure / maxPressureValue * 255, particlePressure / maxPressureValue * 255, 255, 255);
+			shape.setFillColor(pressureColor);
+		}
 
+		shape.setPosition(p->position_current.x - p->radius, p->position_current.y - p->radius);
+		
 		if (p->isTheOneNeighbor) {
 			shape.setFillColor(sf::Color::Red);
 		}
@@ -69,6 +78,7 @@ void Renderer::RenderSimulation() {
 			screenText.append("\nNeighbors: " + std::to_string(p->neighbors.size()) + " fluid, " + std::to_string(p->neighborsBoundary.size()) + " boundary");
 			screenText.append("\nDensity: " + std::to_string(p->density));
 			screenText.append("\nVolume: " + std::to_string(p->volume));
+			screenText.append("\nPressure: " + std::to_string(p->pressure));
 			screenText.append("\nRadius: " + std::to_string(p->radius));
 			screenText.append("\nPredicted velocity: " + std::to_string((int) p->predictedVelocity.x) + ", " + std::to_string((int) p->predictedVelocity.y));
 			screenText.append("\nPredicted density error: " + std::to_string(p->predictedDensityError));
@@ -99,6 +109,9 @@ void Renderer::handleTakeScreenShot()
 	frameNumber++;
 }
 
+
+//Visualize pressure
+//Visualize density
 void Renderer::ProcessEvents()
 {
 	sf::Event event;

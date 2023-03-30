@@ -194,7 +194,7 @@ void Solver::initializeBoundaryParticles()
 	float circumference = 2 * (float) M_PI * radius;
 	float particlesToSpawn = circumference/PARTICLE_SPACING;
 
-	for (float i = 0; i < particlesToSpawn; i ++)
+	for (float i = 0; i < particlesToSpawn; i += 0.75f)
 	{
 		float posX = cos(i) * radius + centerPosition.x;
 		float posY = sin(i) * radius + centerPosition.y;
@@ -266,7 +266,7 @@ void Solver::handleAddWall(float positionX, float positionY)
 
 		int particlesToAdd = (int) floor(wallVector.length() / (PARTICLE_SPACING));
 
-		for (int i = 1; i < particlesToAdd; i++)
+		for (float i = 1; i < particlesToAdd; i += 0.75f)
 		{
 			float posX = i * wallVector.x / particlesToAdd + initialWallPoint.x;
 			float posY = i * wallVector.y / particlesToAdd + initialWallPoint.y;

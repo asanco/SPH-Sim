@@ -57,6 +57,7 @@ public:
 	void handleAddWall(float positionX, float positionY);
 
 private:
+	//Implement CFL variable time step. calculate at beginning of computation.
 	float dt = 0.01f;
 	std::vector<std::shared_ptr <SolverBase>> solvers;
 	float ALPHA = 5.f / (14.f * (float) M_PI * PARTICLE_SPACING * PARTICLE_SPACING);
