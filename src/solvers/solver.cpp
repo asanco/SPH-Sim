@@ -14,7 +14,7 @@ Solver::Solver()
 	particles({})
 {
 	solvers.push_back(std::move(std::make_shared<NeighborSearch>("ZIndex", &particles)));
-	solvers.push_back(std::move(std::make_shared<PressureSolver>(&particles, &numFluidParticles)));
+	solvers.push_back(std::move(std::make_shared<PressureSolver>(&particles, &numFluidParticles, &dt)));
 }
 
 void Solver::update()
@@ -33,7 +33,7 @@ void Solver::update()
 	//Pressure acceleration
 	applyPressureForce();
 	//Time integration
-	updatePositions(dt);
+	updatePositions();
 
 	if (stepUpdate) updating = false;
 }
@@ -136,11 +136,21 @@ void Solver::computeNonPressureForces()
 				}
 			}
 			
+			//up::Vec2 pointGravity = applyPointGravity(pi);
 			//Sum non-pressure accelerations
 			pi->viscosityAcceleration = VISCOSITY * fviscosity;
+			//pi->forces = VISCOSITY * fviscosity + pointGravity;
 			pi->forces = VISCOSITY * fviscosity + GRAVITY * pi->mass;
 			pi->predictedVelocity = pi->velocity + dt * pi->forces;
 		});
+}
+
+up::Vec2 Solver::applyPointGravity(std::shared_ptr<Particle> p) {
+	float dx = centerPosition.x - p->position_current.x;
+	float dy = centerPosition.y - p->position_current.y;
+	float force = GRAVITY.y * p->mass;
+
+	return { force * dx, force * dy };
 }
 
 void Solver::applyPressureForce() {
@@ -158,19 +168,28 @@ void Solver::applyPressureForce() {
 		});
 }
 
-void Solver::updatePositions(float dt)
+void Solver::updatePositions()
 {
+	maxVelocity = 0.f;
+
 	std::for_each(
 		std::execution::par,
 		particles.begin(),
 		particles.end(),
-		[this, dt](auto&& p)
+		[this](auto&& p)
 		{
-			if(!p->isBoundary) p->updatePositionEuler(dt);
+			if (!p->isBoundary) {
+				float velocity = p->updatePositionEuler(this->dt);
+				if (velocity > maxVelocity) {
+					maxVelocity = velocity;
+				}
+			}
 		});
+
+	if (maxVelocity < 1) maxVelocity = 1.f;
+	dt = CFL * (PARTICLE_SPACING/maxVelocity);
 }
 
-//Add with particle spacing instead of particle mass
 //Slide 11
 void Solver::addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, bool isTheOne) {
 	Particle newParticle2{
@@ -206,7 +225,7 @@ void Solver::initializeBoundaryParticles()
 void Solver::initializeLiquidParticles(int initialParticles)
 {
 	float minXPos = centerPosition.x - radius / 2;
-	float minYPos = centerPosition.y + 100;
+	float minYPos = centerPosition.y;
 	float xPosition = minXPos;
 	float yPosition = minYPos;
 

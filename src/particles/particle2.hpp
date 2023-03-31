@@ -51,10 +51,12 @@ void updatePosition(float dt) {
 }
 
 // Explicit Euler integration
-void updatePositionEuler(float dt)
+float updatePositionEuler(float dt)
 {
 	velocity += dt * forces / 100.f;
 	position_current += dt * velocity;
+
+	return sqrt(velocity.x*velocity.x + velocity.y * velocity.y);
 }
 
 void accelerate(up::Vec2 acc)

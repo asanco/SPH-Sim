@@ -9,7 +9,7 @@
 class PressureSolver: public SolverBase {
 
 public:
-	PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles, int *_numFluidParticles);
+	PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles, int *_numFluidParticles, float *_dt);
 	void compute() override;
 
 private:
@@ -17,7 +17,7 @@ private:
 	int *numFluidParticles;
 
 	float gamma = 1.f;
-	float dtSquared = dt * dt;
+	float *dt;
 	float restDensitySquared = PARTICLE_REST_DENSITY * PARTICLE_REST_DENSITY;
 
 	std::vector<std::shared_ptr<Particle>> *particles;

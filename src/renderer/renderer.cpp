@@ -43,6 +43,7 @@ void Renderer::RenderSimulation() {
 
 	std::string isUpdatingText = m_solver.updating ? "true" : "false";
 	std::string screenText = "Number of fluid particles: " + std::to_string(m_solver.numFluidParticles);
+	screenText.append("\nTime step: " + std::to_string(m_solver.dt));
 	screenText.append("\nTotal number of particles:" + std::to_string(m_solver.particles.size()));
 	screenText.append("\nUpdating: " + isUpdatingText);
 
@@ -54,9 +55,9 @@ void Renderer::RenderSimulation() {
 			shape.setFillColor(p->color);
 		}
 		else {
-			float maxPressureValue = 100.f;
+			float maxPressureValue = 2000.f;
 			float particlePressure = p->pressureAcceleration.length() > maxPressureValue ? maxPressureValue : p->pressureAcceleration.length();
-			sf::Color pressureColor = sf::Color(particlePressure / maxPressureValue * 255, particlePressure / maxPressureValue * 255, 255, 255);
+			sf::Color pressureColor = sf::Color((int) (particlePressure / maxPressureValue * 255), (int) (particlePressure / maxPressureValue * 255), 255, 255);
 			shape.setFillColor(pressureColor);
 		}
 
@@ -80,7 +81,7 @@ void Renderer::RenderSimulation() {
 			screenText.append("\nVolume: " + std::to_string(p->volume));
 			screenText.append("\nPressure: " + std::to_string(p->pressure));
 			screenText.append("\nRadius: " + std::to_string(p->radius));
-			screenText.append("\nPredicted velocity: " + std::to_string((int) p->predictedVelocity.x) + ", " + std::to_string((int) p->predictedVelocity.y));
+			screenText.append("\nVelocity: " + std::to_string((int) p->velocity.x) + ", " + std::to_string((int) p->velocity.y));
 			screenText.append("\nPredicted density error: " + std::to_string(p->predictedDensityError));
 			screenText.append("\nDiagonal element: " + std::to_string(p->diagonalElement));
 			screenText.append("\nPosition: " + std::to_string((int)p->position_current.x) + ", " + std::to_string((int)p->position_current.y));

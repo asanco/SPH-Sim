@@ -2,10 +2,11 @@
 #include "solver.hpp"
 #include <iostream>
 
-PressureSolver::PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles, int  *_numFluidParticles)
+PressureSolver::PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles, int  *_numFluidParticles, float *_dt)
 {
 	particles = _particles;
 	numFluidParticles = _numFluidParticles;
+	dt = _dt;
 }
 
 void PressureSolver::compute() {
@@ -93,7 +94,7 @@ float PressureSolver::computeSourceTerm(std::shared_ptr<Particle> pi) {
 		summedTerm2 += (pj->mass * pi->predictedVelocity).dot(gradient);
 	}
 
-	sourceTerm = PARTICLE_REST_DENSITY - pi->density - dt * summedTerm1 - dt * summedTerm2;
+	sourceTerm = PARTICLE_REST_DENSITY - pi->density - (*dt) * summedTerm1 - (*dt) * summedTerm2;
 
 	return sourceTerm;
 }
@@ -156,7 +157,7 @@ float PressureSolver::computeDiagonal(std::shared_ptr<Particle> pi)
 		summedTerm5 += (pj->mass * (-1 * summedTerm1 - 2 * gamma * summedTerm2)).dot(gradientij);
 	}
 
-	diagonalElement = dtSquared * (summedTerm3 + summedTerm4 + summedTerm5);
+	diagonalElement = (*dt) * (*dt) * (summedTerm3 + summedTerm4 + summedTerm5);
 
 	return diagonalElement;
 }
@@ -196,7 +197,6 @@ float PressureSolver::computeDivergence(std::shared_ptr<Particle> pi)
 	float divergence;
 	float summedDivergence1 = 0.f;
 	float summedDivergence2 = 0.f;
-	float timeStepSquared = dt * dt;
 
 	for (auto &pj : pi->neighbors)
 	{
@@ -214,7 +214,7 @@ float PressureSolver::computeDivergence(std::shared_ptr<Particle> pi)
 		summedDivergence2 += (pj->mass * (pi->pressureAcceleration)).dot(gradientij);
 	}
 
-	divergence = timeStepSquared * (summedDivergence1 + summedDivergence2);
+	divergence = (*dt) * (*dt) * (summedDivergence1 + summedDivergence2);
 
 	return divergence;
 }
