@@ -28,7 +28,7 @@ void PressureSolver::compute() {
 	
 	//Iteration l
 	float densityErrorAvg = INFINITY;
-	int numIterations = 0;
+	numIterations = 0;
 
 	//Set min densityErrorAvg to break loop
 	//Define min number of iterations
@@ -72,7 +72,7 @@ void PressureSolver::compute() {
 	}
 }
 
-//Check if it changes sign before hitting boundary = checked
+//Check boundary contribution
 //Matrix vector product should converge to the source term
 float PressureSolver::computeSourceTerm(std::shared_ptr<Particle> pi) {
 	float summedTerm1 = 0.f;
@@ -99,7 +99,7 @@ float PressureSolver::computeSourceTerm(std::shared_ptr<Particle> pi) {
 	return sourceTerm;
 }
 
-//Check if correct 
+//Check boundary contribution
 //Play around with gamma
 float PressureSolver::computeDiagonal(std::shared_ptr<Particle> pi)
 {
@@ -190,7 +190,7 @@ up::Vec2 PressureSolver::computePressureAcceleration(std::shared_ptr<Particle> p
 	return summedAcceleration;
 }
 
-//CHECK
+//Check boundary contribution
 //Compute the divergence of the velocity change delta(ta) due to the pressure acceleration
 float PressureSolver::computeDivergence(std::shared_ptr<Particle> pi) 
 {

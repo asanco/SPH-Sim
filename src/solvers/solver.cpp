@@ -137,9 +137,10 @@ void Solver::computeNonPressureForces()
 			}
 			
 			//up::Vec2 pointGravity = applyPointGravity(pi);
+			//pi->forces = VISCOSITY * fviscosity + pointGravity;
+
 			//Sum non-pressure accelerations
 			pi->viscosityAcceleration = VISCOSITY * fviscosity;
-			//pi->forces = VISCOSITY * fviscosity + pointGravity;
 			pi->forces = VISCOSITY * fviscosity + GRAVITY * pi->mass;
 			pi->predictedVelocity = pi->velocity + dt * pi->forces;
 		});
@@ -186,17 +187,19 @@ void Solver::updatePositions()
 			}
 		});
 
-	if (maxVelocity < 1) maxVelocity = 1.f;
+	if (maxVelocity < 1) maxVelocity = PARTICLE_SPACING;
 	dt = CFL * (PARTICLE_SPACING/maxVelocity);
 }
 
 //Slide 11
 void Solver::addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, bool isTheOne) {
+	float volume = PARTICLE_SPACING * PARTICLE_SPACING;
+
 	Particle newParticle2{
 		{ starting_x, starting_y },
 		{ starting_x, starting_y },
 		{0.f, 0.f},
-		PARTICLE_SPACING * PARTICLE_SPACING,
+		volume,
 		isBoundary,
 		color,
 		isTheOne
@@ -210,10 +213,10 @@ void Solver::addParticle(float starting_x, float starting_y, bool isBoundary, sf
 void Solver::initializeBoundaryParticles()
 {
 	//Circumference formula
-	float circumference = 2 * (float) M_PI * radius;
-	float particlesToSpawn = circumference/PARTICLE_SPACING;
+	float circumference = 2 * (float)M_PI * radius;
+	float particlesToSpawn = circumference / PARTICLE_SPACING;
 
-	for (float i = 0; i < particlesToSpawn; i += 0.75f)
+	for (float i = 0; i < particlesToSpawn; i += 0.5f)
 	{
 		float posX = cos(i) * radius + centerPosition.x;
 		float posY = sin(i) * radius + centerPosition.y;
@@ -222,17 +225,39 @@ void Solver::initializeBoundaryParticles()
 	}
 }
 
+void Solver::initializeBoundaryParticlesSquare()
+{
+	float minX = centerPosition.x - radius;
+	float maxX = centerPosition.x + radius;
+	float minY = centerPosition.y - radius;
+	float maxY = centerPosition.y + radius;
+	float sideLength = radius * 2;
+
+	int particlesToAdd = (int) floor(sideLength / (PARTICLE_SPACING));
+
+	for (float i = 0; i < particlesToAdd + 0.5f; i += 0.75f)
+	{
+		float posX = i * sideLength / particlesToAdd + minX;
+		float posY = i * sideLength / particlesToAdd + minY;
+
+		addParticle(posX, minY, true, sf::Color::Magenta);
+		addParticle(minX, posY, true, sf::Color::Magenta);
+		addParticle(maxX, posY, true, sf::Color::Magenta);
+		addParticle(posX, maxY, true, sf::Color::Magenta);
+	}
+}
+
 void Solver::initializeLiquidParticles(int initialParticles)
 {
-	float minXPos = centerPosition.x - radius / 2;
-	float minYPos = centerPosition.y;
+	float minXPos = (centerPosition.x - radius) + PARTICLE_SPACING;
+	float minYPos = centerPosition.y - 50;
 	float xPosition = minXPos;
 	float yPosition = minYPos;
 
 	for (int i = 0; i < initialParticles; i++)
 	{
 		addParticle(xPosition, yPosition, false, sf::Color::Blue);
-		if (xPosition - minXPos < radius) xPosition += PARTICLE_SPACING;
+		if (xPosition - minXPos < 150) xPosition += PARTICLE_SPACING;
 		else
 		{
 			xPosition = minXPos;
@@ -281,7 +306,6 @@ void Solver::handleAddWall(float positionX, float positionY)
 	{
 		up::Vec2 finalWallPoint = { positionX, positionY };
 		up::Vec2 wallVector = finalWallPoint - initialWallPoint;
-		up::Vec2 wallVectorNormalized = wallVector / wallVector.length();
 
 		int particlesToAdd = (int) floor(wallVector.length() / (PARTICLE_SPACING));
 

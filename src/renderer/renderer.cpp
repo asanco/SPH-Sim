@@ -5,6 +5,7 @@ Renderer::Renderer(sf::RenderWindow & window, sf::RenderTarget & target, Solver 
 	: showInfo(false),
 	isRecording(false),
 	frameNumber(0),
+	frameId(0),
 	m_window(window),
 	m_target(target),
 	m_solver(solver)
@@ -19,11 +20,16 @@ Renderer::Renderer(sf::RenderWindow & window, sf::RenderTarget & target, Solver 
 	nBackground_inner.setFillColor(sf::Color::Black);
 	nBackground_inner.setPosition(sf::Vector2f(m_solver.centerPosition.x - m_solver.radius, m_solver.centerPosition.y - m_solver.radius));
 
+	sf::RectangleShape nBackground_inner_square(sf::Vector2f(m_solver.radius * 2, m_solver.radius * 2));
+	nBackground_inner_square.setFillColor(sf::Color::Black);
+	nBackground_inner_square.setPosition(sf::Vector2f(m_solver.centerPosition.x - m_solver.radius, m_solver.centerPosition.y - m_solver.radius));
+
 	sf::Font nFont;
 	if (!nFont.loadFromFile("../res/font.ttf")) std::cout << "Error loading font" << std::endl;
 
 	background_outer = nBackground_outer;
 	background_inner = nBackground_inner;
+	background_inner_square = nBackground_inner_square;
 	font = nFont;
 	capturedFrameTexture = nCapturedFrameTexture;
 
@@ -33,7 +39,7 @@ void Renderer::RenderSimulation() {
 	m_window.clear();
 
 	m_window.draw(background_outer);
-	m_window.draw(background_inner);	
+	m_window.draw(background_inner_square);	
 
 	sf::Text text;
 	text.setFont(font);
@@ -43,8 +49,9 @@ void Renderer::RenderSimulation() {
 
 	std::string isUpdatingText = m_solver.updating ? "true" : "false";
 	std::string screenText = "Number of fluid particles: " + std::to_string(m_solver.numFluidParticles);
-	screenText.append("\nTime step: " + std::to_string(m_solver.dt));
 	screenText.append("\nTotal number of particles:" + std::to_string(m_solver.particles.size()));
+	screenText.append("\nNumber of iterations:" + std::to_string( m_solver.solvers.at(1)->numIterations ) );
+	screenText.append("\nTime step: " + std::to_string(m_solver.dt));
 	screenText.append("\nUpdating: " + isUpdatingText);
 
 	for (auto & p : m_solver.particles)
@@ -103,9 +110,10 @@ void Renderer::RenderSimulation() {
 void Renderer::handleTakeScreenShot()
 {
 	capturedFrameTexture.update(m_window);
-	if (frameNumber % 50 == 0) {
+	if (frameNumber % 10 == 0) {
 		sf::Image capturedFrame = capturedFrameTexture.copyToImage();
-		capturedFrame.saveToFile("../sequence/frame" + std::to_string(frameNumber) + ".png");
+		capturedFrame.saveToFile("../sequence/frame" + std::to_string(frameId) + ".png");
+		frameId++;
 	}
 	frameNumber++;
 }
@@ -127,7 +135,7 @@ void Renderer::ProcessEvents()
 			if (event.key.code == sf::Keyboard::A) m_solver.addParticle(600, 350, false, sf::Color::Blue);
 			else if (event.key.code == sf::Keyboard::U) m_solver.updating = !m_solver.updating;
 			if (event.key.code == sf::Keyboard::O) isRecording = !isRecording;
-			else if (event.key.code == sf::Keyboard::N) m_solver.initializeLiquidParticles(1000);
+			else if (event.key.code == sf::Keyboard::N) m_solver.initializeLiquidParticles(2000);
 			else if (event.key.code == sf::Keyboard::M) m_solver.initializeLiquidParticlesTest();
 			else if (event.key.code == sf::Keyboard::I) showInfo = !showInfo;
 			else if (event.key.code == sf::Keyboard::R) {

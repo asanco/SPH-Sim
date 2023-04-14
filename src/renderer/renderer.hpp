@@ -16,6 +16,7 @@ public:
 	void handleTakeScreenShot();
 private:
 	int frameNumber;
+	int frameId;
 
 	sf::RenderWindow& m_window;
 	sf::RenderTarget& m_target;
@@ -24,6 +25,7 @@ private:
 	sf::Font font;
 	sf::RectangleShape background_outer;
 	sf::CircleShape background_inner;
+	sf::RectangleShape background_inner_square;
 	sf::Texture capturedFrameTexture;
 
 };

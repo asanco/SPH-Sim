@@ -17,7 +17,7 @@ int main()
 	Solver solver;
 	Renderer renderer(window, render_tex, solver);
 
-	solver.initializeBoundaryParticles();
+	solver.initializeBoundaryParticlesSquare();
 
 	while (window.isOpen())
 	{

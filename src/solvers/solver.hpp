@@ -24,10 +24,10 @@ public:
 	//Solver constant parameters
 	bool updating = true;
 	bool stepUpdate = false;
-	//Tweak kernel support - 2 x particle spacing
+
 	static constexpr float PARTICLE_SPACING = 5.f;
 	static constexpr float KERNEL_SUPPORT = 10.f;
-	static constexpr float VISCOSITY = 0.f;
+	static constexpr float VISCOSITY = 2.f;
 	static constexpr float SIM_WIDTH = 1200.f;
 	static constexpr float SIM_HEIGHT = 700.f;
 	static constexpr int DIMENSION = 2;
@@ -41,6 +41,7 @@ public:
 	up::Vec2 GRAVITY{ 0.f, 9.8f };
 
 	std::vector<std::shared_ptr<Particle>> particles;
+	std::vector<std::shared_ptr <SolverBase>> solvers;
 
 	float dt = 0.01f;
 
@@ -53,6 +54,7 @@ public:
 	void updatePositions();
 	void addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, bool isTheOne = false);
 	void initializeBoundaryParticles();
+	void initializeBoundaryParticlesSquare();
 	void initializeLiquidParticles(int initialParticles);
 	void initializeLiquidParticlesTest();
 	void applyPressureForce();
@@ -63,7 +65,6 @@ private:
 	//Implement CFL variable time step. calculate at beginning of computation.
 	float CFL = 0.1f;
 	float maxVelocity = 0.f;
-	std::vector<std::shared_ptr <SolverBase>> solvers;
 	float ALPHA = 5.f / (14.f * (float) M_PI * PARTICLE_SPACING * PARTICLE_SPACING);
 
 };
