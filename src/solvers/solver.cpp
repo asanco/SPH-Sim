@@ -247,6 +247,30 @@ void Solver::initializeBoundaryParticlesSquare()
 	}
 }
 
+
+void Solver::initializeLiquidParticles(sf::Vector2i initialPos, sf::Vector2i endPos)
+{
+	int minX = initialPos.x;
+	int minY = initialPos.y;
+	int maxX = endPos.x;
+	int maxY = endPos.y;
+
+	int currentX = minX;
+	int currentY = minY;
+
+	while (currentY < maxY)
+	{
+		addParticle(currentX, currentY, false, sf::Color::Blue);
+
+		currentX += PARTICLE_SPACING;
+
+		if (currentX > maxX) {
+			currentY += PARTICLE_SPACING;
+			currentX = minX;
+		}
+	}
+}
+
 void Solver::initializeLiquidParticles(int initialParticles)
 {
 	float minXPos = (centerPosition.x - radius) + PARTICLE_SPACING;
@@ -266,7 +290,7 @@ void Solver::initializeLiquidParticles(int initialParticles)
 	}
 }
 
-void Solver::initializeLiquidParticlesTest()
+void Solver::initializeLiquidParticles()
 {
 	float minXPos = centerPosition.x - radius / 2;
 	float minYPos = centerPosition.y + 100;

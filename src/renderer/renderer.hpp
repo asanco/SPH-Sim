@@ -14,9 +14,12 @@ public:
 	void RenderSimulation();
 	void ProcessEvents();
 	void handleTakeScreenShot();
+	void RenderParticles(std::string screenText);
+	void PreviewParticles();
 private:
 	int frameNumber;
 	int frameId;
+	bool holdingClick;
 
 	sf::RenderWindow& m_window;
 	sf::RenderTarget& m_target;
@@ -27,5 +30,5 @@ private:
 	sf::CircleShape background_inner;
 	sf::RectangleShape background_inner_square;
 	sf::Texture capturedFrameTexture;
-
+	sf::Vector2i initialPreviewPosition;
 };

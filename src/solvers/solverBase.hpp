@@ -11,7 +11,7 @@ public:
 	virtual ~SolverBase();
 	up::Vec2 kernelGradient(up::Vec2 distanceVector);
 	virtual void compute() = 0;
-	int numIterations = 0.f;
+	int numIterations = 0;
 
 protected:
 	static constexpr float radius = 300.0f;

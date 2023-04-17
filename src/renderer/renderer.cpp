@@ -4,8 +4,10 @@
 Renderer::Renderer(sf::RenderWindow & window, sf::RenderTarget & target, Solver & solver)
 	: showInfo(false),
 	isRecording(false),
+	holdingClick(false),
 	frameNumber(0),
 	frameId(0),
+	initialPreviewPosition(0,0),
 	m_window(window),
 	m_target(target),
 	m_solver(solver)
@@ -54,48 +56,8 @@ void Renderer::RenderSimulation() {
 	screenText.append("\nTime step: " + std::to_string(m_solver.dt));
 	screenText.append("\nUpdating: " + isUpdatingText);
 
-	for (auto & p : m_solver.particles)
-	{
-		sf::CircleShape shape(p->radius);
-
-		if (p->isBoundary){
-			shape.setFillColor(p->color);
-		}
-		else {
-			float maxPressureValue = 2000.f;
-			float particlePressure = p->pressureAcceleration.length() > maxPressureValue ? maxPressureValue : p->pressureAcceleration.length();
-			sf::Color pressureColor = sf::Color((int) (particlePressure / maxPressureValue * 255), (int) (particlePressure / maxPressureValue * 255), 255, 255);
-			shape.setFillColor(pressureColor);
-		}
-
-		shape.setPosition(p->position_current.x - p->radius, p->position_current.y - p->radius);
-		
-		if (p->isTheOneNeighbor) {
-			shape.setFillColor(sf::Color::Red);
-		}
-
-		m_window.draw(shape);
-
-		if (showInfo && p->theOne) {
-			sf::Text particleCellText(std::to_string(p->gridCellIndex), font, 12);
-			particleCellText.setFillColor(sf::Color::White);
-			particleCellText.setPosition(p->position_current.x, p->position_current.y);
-			m_window.draw(particleCellText);
-			screenText.append("\n");
-			screenText.append("\nNeighbor search index: " + std::to_string(p->gridCellIndex));
-			screenText.append("\nNeighbors: " + std::to_string(p->neighbors.size()) + " fluid, " + std::to_string(p->neighborsBoundary.size()) + " boundary");
-			screenText.append("\nDensity: " + std::to_string(p->density));
-			screenText.append("\nVolume: " + std::to_string(p->volume));
-			screenText.append("\nPressure: " + std::to_string(p->pressure));
-			screenText.append("\nRadius: " + std::to_string(p->radius));
-			screenText.append("\nVelocity: " + std::to_string((int) p->velocity.x) + ", " + std::to_string((int) p->velocity.y));
-			screenText.append("\nPredicted density error: " + std::to_string(p->predictedDensityError));
-			screenText.append("\nDiagonal element: " + std::to_string(p->diagonalElement));
-			screenText.append("\nPosition: " + std::to_string((int)p->position_current.x) + ", " + std::to_string((int)p->position_current.y));
-			screenText.append("\nPressure acceleration: " + std::to_string((int)p->pressureAcceleration.x) + ", " + std::to_string((int)p->pressureAcceleration.y));
-			screenText.append("\nViscosity acceleration: " + std::to_string((int) p->viscosityAcceleration.x) + ", " + std::to_string((int) p->viscosityAcceleration.y));
-		}
-	}
+	if (holdingClick) PreviewParticles();
+	RenderParticles(screenText);
 
 	text.setString(screenText);
 
@@ -118,9 +80,77 @@ void Renderer::handleTakeScreenShot()
 	frameNumber++;
 }
 
+void Renderer::RenderParticles(std::string screenText) {
+	for (auto & p : m_solver.particles)
+	{
+		sf::CircleShape shape(p->radius);
 
-//Visualize pressure
-//Visualize density
+		if (p->isBoundary) {
+			shape.setFillColor(p->color);
+		}
+		else {
+			float maxPressureValue = 2000.f;
+			float particlePressure = p->pressureAcceleration.length() > maxPressureValue ? maxPressureValue : p->pressureAcceleration.length();
+			sf::Color pressureColor = sf::Color((int)(particlePressure / maxPressureValue * 255), (int)(particlePressure / maxPressureValue * 255), 255, 255);
+			shape.setFillColor(pressureColor);
+		}
+
+		shape.setPosition(p->position_current.x - p->radius, p->position_current.y - p->radius);
+
+		if (p->isTheOneNeighbor) shape.setFillColor(sf::Color::Red);
+		else if (p->theOne) shape.setFillColor(sf::Color::Green);
+
+		m_window.draw(shape);
+
+		if (showInfo && p->theOne) {
+			sf::Text particleCellText(std::to_string(p->gridCellIndex), font, 12);
+			particleCellText.setFillColor(sf::Color::White);
+			particleCellText.setPosition(p->position_current.x, p->position_current.y);
+			m_window.draw(particleCellText);
+			screenText.append("\n");
+			screenText.append("\nNeighbor search index: " + std::to_string(p->gridCellIndex));
+			screenText.append("\nNeighbors: " + std::to_string(p->neighbors.size()) + " fluid, " + std::to_string(p->neighborsBoundary.size()) + " boundary");
+			screenText.append("\nDensity: " + std::to_string(p->density));
+			screenText.append("\nVolume: " + std::to_string(p->volume));
+			screenText.append("\nPressure: " + std::to_string(p->pressure));
+			screenText.append("\nRadius: " + std::to_string(p->radius));
+			screenText.append("\nVelocity: " + std::to_string((int)p->velocity.x) + ", " + std::to_string((int)p->velocity.y));
+			screenText.append("\nPredicted density error: " + std::to_string(p->predictedDensityError));
+			screenText.append("\nDiagonal element: " + std::to_string(p->diagonalElement));
+			screenText.append("\nPosition: " + std::to_string((int)p->position_current.x) + ", " + std::to_string((int)p->position_current.y));
+			screenText.append("\nPressure acceleration: " + std::to_string((int)p->pressureAcceleration.x) + ", " + std::to_string((int)p->pressureAcceleration.y));
+			screenText.append("\nViscosity acceleration: " + std::to_string((int)p->viscosityAcceleration.x) + ", " + std::to_string((int)p->viscosityAcceleration.y));
+		}
+	}
+}
+
+void Renderer::PreviewParticles()
+{
+	float spacing = m_solver.PARTICLE_SPACING;
+	sf::CircleShape shape(spacing /2);
+	int minX = (int) (initialPreviewPosition.x - spacing / 2);
+	int minY = (int) (initialPreviewPosition.y - spacing / 2);
+	int maxX = sf::Mouse::getPosition(m_window).x;
+	int maxY = sf::Mouse::getPosition(m_window).y;
+
+	int currentX = minX;
+	int currentY = minY;
+
+	while (currentY <= maxY)
+	{
+		shape.setPosition((float) currentX, (float) currentY);
+		shape.setFillColor(sf::Color::White);
+		m_window.draw(shape);
+
+		currentX += (int) spacing;
+
+		if (currentX >= maxX) {
+			currentY += (int)spacing;
+			currentX = minX ;
+		}
+	}
+}
+
 void Renderer::ProcessEvents()
 {
 	sf::Event event;
@@ -132,29 +162,33 @@ void Renderer::ProcessEvents()
 		switch (event.type)
 		{
 		case sf::Event::KeyPressed:
-			if (event.key.code == sf::Keyboard::A) m_solver.addParticle(600, 350, false, sf::Color::Blue);
+			if (event.key.code == sf::Keyboard::A) m_solver.addParticle((float) sf::Mouse::getPosition(m_window).x, (float) sf::Mouse::getPosition(m_window).y, false, sf::Color::Blue);
 			else if (event.key.code == sf::Keyboard::U) m_solver.updating = !m_solver.updating;
-			if (event.key.code == sf::Keyboard::O) isRecording = !isRecording;
+			else if (event.key.code == sf::Keyboard::O) isRecording = !isRecording;
 			else if (event.key.code == sf::Keyboard::N) m_solver.initializeLiquidParticles(2000);
-			else if (event.key.code == sf::Keyboard::M) m_solver.initializeLiquidParticlesTest();
+			else if (event.key.code == sf::Keyboard::M) m_solver.initializeLiquidParticles();
 			else if (event.key.code == sf::Keyboard::I) showInfo = !showInfo;
 			else if (event.key.code == sf::Keyboard::R) {
 				m_solver.particles.clear();
 				m_solver.numFluidParticles = 0;
-				m_solver.initializeBoundaryParticles();
+				m_solver.initializeBoundaryParticlesSquare();
 			}
 			else if (event.key.code == sf::Keyboard::Right) m_solver.updating = true;
 			else if (event.key.code == sf::Keyboard::Space) m_solver.stepUpdate = !m_solver.stepUpdate;
+			else if (event.key.code == sf::Keyboard::W) m_solver.handleAddWall((float) sf::Mouse::getPosition(m_window).x, (float) sf::Mouse::getPosition(m_window).y);
 			break;
 		case sf::Event::MouseButtonPressed:
-			if (event.mouseButton.button == sf::Mouse::Right) {
-				m_solver.addParticle((float)event.mouseButton.x, (float)event.mouseButton.y, false, sf::Color::Green, true);
+			if (event.mouseButton.button == sf::Mouse::Right) m_solver.addParticle((float)event.mouseButton.x, (float)event.mouseButton.y, false, sf::Color::Green, true);
+			else if (event.mouseButton.button == sf::Mouse::Left) {
+				holdingClick = true;
+				initialPreviewPosition = sf::Vector2i(event.mouseButton.x, event.mouseButton.y);
 			}
-			if (event.mouseButton.button == sf::Mouse::Middle) {
-				m_solver.addParticle((float)event.mouseButton.x, (float)event.mouseButton.y, false, sf::Color::Blue);
-			}
-			if (event.mouseButton.button == sf::Mouse::Left) m_solver.handleAddWall((float)event.mouseButton.x, (float)event.mouseButton.y);
 			break;
+		case sf::Event::MouseButtonReleased:
+			if (event.mouseButton.button == sf::Mouse::Left) {
+				holdingClick = false;
+				m_solver.initializeLiquidParticles(initialPreviewPosition, sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+			}
 		default:
 			break;
 		}

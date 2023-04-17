@@ -55,8 +55,9 @@ public:
 	void addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, bool isTheOne = false);
 	void initializeBoundaryParticles();
 	void initializeBoundaryParticlesSquare();
+	void initializeLiquidParticles(sf::Vector2i initialPos, sf::Vector2i endPos);
 	void initializeLiquidParticles(int initialParticles);
-	void initializeLiquidParticlesTest();
+	void initializeLiquidParticles();
 	void applyPressureForce();
 	void handleAddWall(float positionX, float positionY);
 	up::Vec2 applyPointGravity(std::shared_ptr<Particle> p);
