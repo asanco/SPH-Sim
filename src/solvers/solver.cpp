@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <execution>
 
-
 Solver::Solver()
 	:
 	centerPosition({ 600.0f, 350.0f }),

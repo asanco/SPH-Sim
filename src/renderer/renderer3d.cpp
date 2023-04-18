@@ -176,6 +176,9 @@ public:
 	}
 
 	void render(const std::vector<Sphere>& spheres) {
+		
+		window.clear();
+
 		// Set up projection matrix
 		sf::Vector2u windowSize = window.getSize();
 		float aspectRatio = (float)windowSize.x / (float)windowSize.y;

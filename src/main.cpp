@@ -41,7 +41,6 @@ int main()
 		solver.update();
 		//Render frame
 		renderer.RenderSimulation();
-		//window.clear();
 		//renderer3d.render(spheres);
 	}
 

@@ -1,6 +1,8 @@
 #include "pressureSolver.hpp"
 #include "solver.hpp"
 #include <iostream>
+#include <algorithm>
+#include <execution>
 
 PressureSolver::PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles, int  *_numFluidParticles, float *_dt)
 {
@@ -12,19 +14,22 @@ PressureSolver::PressureSolver(std::vector<std::shared_ptr<Particle>> *_particle
 void PressureSolver::compute() {
 	
 	//Initialization
-	for (size_t i = 0; i < particles->size(); ++i)
-	{
-		std::shared_ptr<Particle> &p = particles->at(i);
+	std::for_each(
+		std::execution::par,
+		particles->begin(),
+		particles->end(),
+		[this](auto&& p)
+		{
+			if (p->isBoundary) return;
+			
+			float sourceTerm = computeSourceTerm(p);
+			float diagonalElement = computeDiagonal(p);
 
-		if (p->isBoundary) continue;
+			p->predictedDensityError = sourceTerm;
+			p->diagonalElement = diagonalElement;
+			p->pressure = 0.f;
+		});
 
-		float sourceTerm = computeSourceTerm(p);
-		float diagonalElement = computeDiagonal(p);
-
-		p->predictedDensityError = sourceTerm;
-		p->diagonalElement = diagonalElement;
-		p->pressure = 0.f;
-	}
 	
 	//Iteration l
 	float densityErrorAvg = INFINITY;
@@ -37,33 +42,34 @@ void PressureSolver::compute() {
 		densityErrorAvg = 0.f;
 
 		//First loop
-		for (size_t i = 0; i < particles->size(); ++i)
-		{
-			std::shared_ptr<Particle> &p = particles->at(i);
+		std::for_each(
+			std::execution::par,
+			particles->begin(),
+			particles->end(),
+			[this](auto&& p)
+			{
+				if (p->isBoundary) return;
 
-			if (p->isBoundary) continue;
+				p->pressureAcceleration = computePressureAcceleration(p);
+			});
 
-			p->pressureAcceleration = computePressureAcceleration(p);
-		}
+		//Second loop
+		std::for_each(
+			std::execution::par,
+			particles->begin(),
+			particles->end(),
+			[this, &densityErrorAvg](auto&& p)
+			{
+				p->negVelocityDivergence = computeDivergence(p);
 
-		//Second 
-		for (size_t i = 0; i < particles->size(); ++i)
-		{
-			std::shared_ptr<Particle> &p = particles->at(i);
+				if (p->diagonalElement != 0) {
+					updatePressure(p);
+				}
 
-			if (p->isBoundary) continue;
+				float predictedDensityError = std::max(p->negVelocityDivergence - p->predictedDensityError, 0.f);
 
-			p->negVelocityDivergence = computeDivergence(p);
-			
-			if (p->diagonalElement != 0) {
-				updatePressure(p);
-			}
-
-			float predictedDensityError = std::max(p->negVelocityDivergence - p->predictedDensityError, 0.f);
-
-			densityErrorAvg += predictedDensityError;
-
-		}
+				densityErrorAvg += predictedDensityError;
+			});
 
 		//Divide by rest density of fluid to normalize the change of volume
 		densityErrorAvg /= PARTICLE_REST_DENSITY;
