@@ -7,13 +7,16 @@ Renderer::Renderer(sf::RenderWindow & window, sf::RenderTarget & target, Solver 
 	holdingClick(false),
 	frameNumber(0),
 	frameId(0),
-	initialPreviewPosition(0,0),
+	initialPreviewPosition(0.f,0.f),
 	m_window(window),
 	m_target(target),
 	m_solver(solver)
 {
 	sf::Texture nCapturedFrameTexture;
 	nCapturedFrameTexture.create(m_target.getSize().x, m_target.getSize().y);
+	
+	view = sf::View(sf::FloatRect(0, 0, m_window.getSize().x, m_window.getSize().y));
+	view.zoom(1.0f);
 
 	sf::RectangleShape nBackground_outer(sf::Vector2f((float) m_target.getSize().x, (float) m_target.getSize().y));
 	nBackground_outer.setFillColor(sf::Color::White);
@@ -62,6 +65,7 @@ void Renderer::RenderSimulation() {
 	text.setString(screenText);
 
 	m_window.draw(text);
+	m_window.setView(view);
 	m_window.display();
 
 	if (isRecording) {
@@ -80,7 +84,7 @@ void Renderer::handleTakeScreenShot()
 	frameNumber++;
 }
 
-void Renderer::RenderParticles(std::string screenText) {
+void Renderer::RenderParticles(std::string &screenText) {
 	for (auto & p : m_solver.particles)
 	{
 		sf::CircleShape shape(p->radius);
@@ -128,24 +132,24 @@ void Renderer::PreviewParticles()
 {
 	float spacing = m_solver.PARTICLE_SPACING;
 	sf::CircleShape shape(spacing /2);
-	int minX = (int) (initialPreviewPosition.x - spacing / 2);
-	int minY = (int) (initialPreviewPosition.y - spacing / 2);
-	int maxX = sf::Mouse::getPosition(m_window).x;
-	int maxY = sf::Mouse::getPosition(m_window).y;
+	float minX = initialPreviewPosition.x - spacing / 2;
+	float minY = initialPreviewPosition.y - spacing / 2;
+	float maxX = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window), view).x;
+	float maxY = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window), view).y;
 
-	int currentX = minX;
-	int currentY = minY;
+	float currentX = minX;
+	float currentY = minY;
 
 	while (currentY <= maxY)
 	{
-		shape.setPosition((float) currentX, (float) currentY);
+		shape.setPosition(currentX, currentY);
 		shape.setFillColor(sf::Color::White);
 		m_window.draw(shape);
 
-		currentX += (int) spacing;
+		currentX += spacing;
 
 		if (currentX >= maxX) {
-			currentY += (int)spacing;
+			currentY += spacing;
 			currentX = minX ;
 		}
 	}
@@ -154,6 +158,8 @@ void Renderer::PreviewParticles()
 void Renderer::ProcessEvents()
 {
 	sf::Event event;
+	sf::Vector2f trueMousePos = m_window.mapPixelToCoords(sf::Mouse::getPosition(m_window), view);
+
 	while (m_window.pollEvent(event))
 	{
 		if (event.type == sf::Event::Closed)
@@ -162,7 +168,7 @@ void Renderer::ProcessEvents()
 		switch (event.type)
 		{
 		case sf::Event::KeyPressed:
-			if (event.key.code == sf::Keyboard::A) m_solver.addParticle((float) sf::Mouse::getPosition(m_window).x, (float) sf::Mouse::getPosition(m_window).y, false, sf::Color::Blue);
+			if (event.key.code == sf::Keyboard::A) m_solver.addParticle((float)trueMousePos.x, (float)trueMousePos.y, false, sf::Color::Blue);
 			else if (event.key.code == sf::Keyboard::U) m_solver.updating = !m_solver.updating;
 			else if (event.key.code == sf::Keyboard::O) isRecording = !isRecording;
 			else if (event.key.code == sf::Keyboard::N) m_solver.initializeLiquidParticles(2000);
@@ -173,22 +179,33 @@ void Renderer::ProcessEvents()
 				m_solver.numFluidParticles = 0;
 				m_solver.initializeBoundaryParticlesSquare();
 			}
-			else if (event.key.code == sf::Keyboard::Right) m_solver.updating = true;
+			else if (event.key.code == sf::Keyboard::Right) view.move(sf::Vector2(5.f, 0.f));
+			else if (event.key.code == sf::Keyboard::Left) view.move(sf::Vector2(-5.f, 0.f));
+			else if (event.key.code == sf::Keyboard::Up) view.move(sf::Vector2(0.f, -5.f));
+			else if (event.key.code == sf::Keyboard::Down) view.move(sf::Vector2(0.f, 5.f));
 			else if (event.key.code == sf::Keyboard::Space) m_solver.stepUpdate = !m_solver.stepUpdate;
-			else if (event.key.code == sf::Keyboard::W) m_solver.handleAddWall((float) sf::Mouse::getPosition(m_window).x, (float) sf::Mouse::getPosition(m_window).y);
+			else if (event.key.code == sf::Keyboard::Tab) m_solver.moveDirection = -m_solver.moveDirection;
+			else if (event.key.code == sf::Keyboard::W) m_solver.handleAddWall((float)trueMousePos.x, (float)trueMousePos.y);
+			else if (event.key.code == sf::Keyboard::Q) m_solver.handleAddWall((float)trueMousePos.x, (float)trueMousePos.y, true);
+			else if (event.key.code == sf::Keyboard::C) m_solver.initializeMovingParticlesCircle((float)trueMousePos.x, (float)trueMousePos.y, 50.f, true);
+			else if (event.key.code == sf::Keyboard::X) m_solver.initializeMovingParticlesCircle((float)trueMousePos.x, (float)trueMousePos.y, 50.f, false);
 			break;
 		case sf::Event::MouseButtonPressed:
-			if (event.mouseButton.button == sf::Mouse::Right) m_solver.addParticle((float)event.mouseButton.x, (float)event.mouseButton.y, false, sf::Color::Green, true);
+			if (event.mouseButton.button == sf::Mouse::Right) m_solver.addParticle((float)trueMousePos.x, (float)trueMousePos.y, false, sf::Color::Green, true);
 			else if (event.mouseButton.button == sf::Mouse::Left) {
 				holdingClick = true;
-				initialPreviewPosition = sf::Vector2i(event.mouseButton.x, event.mouseButton.y);
+				initialPreviewPosition = sf::Vector2f(trueMousePos.x, trueMousePos.y);
 			}
 			break;
 		case sf::Event::MouseButtonReleased:
 			if (event.mouseButton.button == sf::Mouse::Left) {
 				holdingClick = false;
-				m_solver.initializeLiquidParticles(initialPreviewPosition, sf::Vector2i(event.mouseButton.x, event.mouseButton.y));
+				m_solver.initializeLiquidParticles(initialPreviewPosition, sf::Vector2f(trueMousePos.x, trueMousePos.y));
 			}
+		case sf::Event::MouseWheelScrolled: {
+			float zoomFactor = 1.0f - event.mouseWheelScroll.delta * 0.1f;
+			view.zoom(zoomFactor);
+		}
 		default:
 			break;
 		}

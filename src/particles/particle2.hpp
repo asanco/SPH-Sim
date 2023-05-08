@@ -17,6 +17,7 @@ struct Particle {
 	bool isBoundary;
 	sf::Color color;
 	bool theOne = false;
+	bool isMovableBoundary = false;
 
 	up::Vec2 velocity = { 0.0f, 0.0f };
 	up::Vec2 forces = { 0.0f, 0.0f };
@@ -53,10 +54,10 @@ void updatePosition(float dt) {
 // Explicit Euler integration
 float updatePositionEuler(float dt)
 {
-	velocity += dt * forces / 100.f;
+	velocity += dt * forces / mass;
 	position_current += dt * velocity;
 
-	return sqrt(velocity.x*velocity.x + velocity.y * velocity.y);
+	return sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
 }
 
 void accelerate(up::Vec2 acc)

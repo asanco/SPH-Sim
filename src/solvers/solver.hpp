@@ -27,7 +27,7 @@ public:
 
 	static constexpr float PARTICLE_SPACING = 5.f;
 	static constexpr float KERNEL_SUPPORT = 10.f;
-	static constexpr float VISCOSITY = 2.f;
+	static constexpr float VISCOSITY = 0.f;
 	static constexpr float SIM_WIDTH = 1200.f;
 	static constexpr float SIM_HEIGHT = 700.f;
 	static constexpr int DIMENSION = 2;
@@ -44,22 +44,24 @@ public:
 	std::vector<std::shared_ptr <SolverBase>> solvers;
 
 	float dt = 0.01f;
+	int moveDirection = 1;
 
 	void update();
 	void computeDensity();
 	float kernelFunction(float distance);
 	up::Vec2 kernelGradient(up::Vec2 distanceVector);
-	float kernelLaplacian(float distance);
 	void computeNonPressureForces(void);
 	void updatePositions();
-	void addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, bool isTheOne = false);
+	void addParticle(float starting_x, float starting_y, bool isBoundary, sf::Color color, 
+		bool isTheOne = false, bool isMovableBoundary = false);
 	void initializeBoundaryParticles();
 	void initializeBoundaryParticlesSquare();
-	void initializeLiquidParticles(sf::Vector2i initialPos, sf::Vector2i endPos);
+	void initializeLiquidParticles(sf::Vector2f initialPos, sf::Vector2f endPos);
 	void initializeLiquidParticles(int initialParticles);
 	void initializeLiquidParticles();
+	void initializeMovingParticlesCircle(float posX, float posY, float radiusCircle, bool isMovable = false);
 	void applyPressureForce();
-	void handleAddWall(float positionX, float positionY);
+	void handleAddWall(float positionX, float positionY, bool isMovable = false);
 	up::Vec2 applyPointGravity(std::shared_ptr<Particle> p);
 
 private:
@@ -67,5 +69,6 @@ private:
 	float CFL = 0.1f;
 	float maxVelocity = 0.f;
 	float ALPHA = 5.f / (14.f * (float) M_PI * PARTICLE_SPACING * PARTICLE_SPACING);
+	sf::Clock clock;
 
 };
