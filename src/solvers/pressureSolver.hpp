@@ -3,13 +3,12 @@
 #include "helpers/compactCell.hpp"
 #include "particles/particle2.hpp"
 #include "solvers/solverBase.hpp"
-
 #include <bitset>
 
 class PressureSolver: public SolverBase {
 
 public:
-	PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles, int *_numFluidParticles, float *_dt);
+	PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles, int *_numFluidParticles, float *_dt, std::ofstream *_simDataFile);
 	void compute() override;
 
 private:
@@ -19,7 +18,7 @@ private:
 	float gamma = 1.f;
 	float *dt;
 	float restDensitySquared = PARTICLE_REST_DENSITY * PARTICLE_REST_DENSITY;
-
+	std::ofstream *simDataFile;
 	std::vector<std::shared_ptr<Particle>> *particles;
 
 	float computeSourceTerm(std::shared_ptr<Particle> pi);

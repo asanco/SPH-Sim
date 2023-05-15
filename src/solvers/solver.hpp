@@ -16,11 +16,15 @@
 #include <math.h>
 #include <bitset>
 #include <execution>
+#include <fstream>
 
 class Solver {
 
 public:
 	Solver();
+	
+	std::ofstream simDataFile;
+
 	//Solver constant parameters
 	bool updating = true;
 	bool stepUpdate = false;
@@ -46,6 +50,8 @@ public:
 	float dt = 0.01f;
 	int moveDirection = 1;
 
+	std::ofstream setupDataFile();
+	void closeFile();
 	void update();
 	void computeDensity();
 	float kernelFunction(float distance);
@@ -70,5 +76,6 @@ private:
 	float maxVelocity = 0.f;
 	float ALPHA = 5.f / (14.f * (float) M_PI * PARTICLE_SPACING * PARTICLE_SPACING);
 	sf::Clock clock;
-
+	sf::Clock simTimeClock;
+	int iteration = 0;
 };

@@ -4,21 +4,24 @@
 #include <algorithm>
 #include <execution>
 
-PressureSolver::PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles, int  *_numFluidParticles, float *_dt)
+PressureSolver::PressureSolver(std::vector<std::shared_ptr<Particle>> *_particles, int  *_numFluidParticles, float *_dt, std::ofstream *_simDataFile)
 {
 	particles = _particles;
 	numFluidParticles = _numFluidParticles;
 	dt = _dt;
+	simDataFile = _simDataFile;
 }
 
 void PressureSolver::compute() {
 	
+	float currentParticlePredictedDensityError = 0.f;
+
 	//Initialization
 	std::for_each(
 		std::execution::par,
 		particles->begin(),
 		particles->end(),
-		[this](auto&& p)
+		[this, &currentParticlePredictedDensityError](auto&& p)
 		{
 			if (p->isBoundary) return;
 			
@@ -28,11 +31,17 @@ void PressureSolver::compute() {
 			p->predictedDensityError = sourceTerm;
 			p->diagonalElement = diagonalElement;
 			p->pressure = 0.f;
+
+			if (p->theOne) currentParticlePredictedDensityError = sourceTerm;
 		});
 
 	
 	//Iteration l
 	float densityErrorAvg = INFINITY;
+	float currentParticleDensityError = 0.f;
+	up::Vec2 currentParticlePredictedVelocity;
+	up::Vec2 currentParticleVelocity;
+
 	numIterations = 0;
 
 	//Set min densityErrorAvg to break loop
@@ -58,7 +67,7 @@ void PressureSolver::compute() {
 			std::execution::par,
 			particles->begin(),
 			particles->end(),
-			[this, &densityErrorAvg](auto&& p)
+			[this, &densityErrorAvg, &currentParticlePredictedVelocity, &currentParticleVelocity, &currentParticleDensityError](auto&& p)
 			{
 				p->negVelocityDivergence = computeDivergence(p);
 
@@ -69,6 +78,12 @@ void PressureSolver::compute() {
 				float predictedDensityError = std::max(p->negVelocityDivergence - p->predictedDensityError, 0.f);
 
 				densityErrorAvg += predictedDensityError;
+
+				if (p->theOne) {
+					currentParticlePredictedVelocity = p->predictedVelocity;
+					currentParticleVelocity = p->velocity;
+					currentParticleDensityError = predictedDensityError;
+				}
 			});
 
 		//Divide by rest density of fluid to normalize the change of volume
@@ -76,6 +91,9 @@ void PressureSolver::compute() {
 		densityErrorAvg /= *numFluidParticles;
 		numIterations++;
 	}
+	*simDataFile << "," << numIterations << "," << densityErrorAvg 
+		<< "," << currentParticlePredictedDensityError << "," << currentParticleDensityError
+		<< "," << currentParticlePredictedVelocity.length() << "," << currentParticleVelocity.length();
 }
 
 //Check boundary contribution

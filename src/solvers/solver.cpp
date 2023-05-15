@@ -8,19 +8,41 @@
 #include <execution>
 
 Solver::Solver()
-	:
-	centerPosition({ 600.0f, 350.0f }),
-	particles({})
+	: centerPosition({ 600.0f, 350.0f }),
+	particles({}),
+	simDataFile(setupDataFile())
 {
 	solvers.push_back(std::move(std::make_shared<NeighborSearch>("ZIndex", &particles)));
-	solvers.push_back(std::move(std::make_shared<PressureSolver>(&particles, &numFluidParticles, &dt)));
+	solvers.push_back(std::move(std::make_shared<PressureSolver>(&particles, &numFluidParticles, &dt, &simDataFile)));
 	clock.restart();
+	simTimeClock.restart();
+}
+
+std::ofstream Solver::setupDataFile()
+{
+	//Create logging file
+	std::ofstream simDataFile("simulation_data.csv");
+
+	// Write the header row in the CSV file
+	simDataFile << 
+		"Sim Iteration,Pressure iteration, Density error average, Simulated Density Error,Actual Density Error,Predicted Velocity,Actual Velocity,Sim time" 
+		<< std::endl;
+
+	return simDataFile;
+}
+
+void Solver::closeFile()
+{
+	simDataFile.close();
 }
 
 void Solver::update()
 {
 	if (!stepUpdate && !updating) updating = true;
 	if (!updating) return;
+
+	iteration++;
+	simDataFile << iteration;
 
 	//Neighbor search
 	solvers.at(0)->compute();
@@ -39,6 +61,8 @@ void Solver::update()
 		clock.restart();
 		moveDirection *= -1;
 	}
+
+	simDataFile << "," << simTimeClock.getElapsedTime().asMilliseconds() << std::endl;
 
 	if (stepUpdate) updating = false;
 }
@@ -224,8 +248,8 @@ void Solver::initializeBoundaryParticles()
 
 	for (float i = 0; i < particlesToSpawn; i += 0.75f)
 	{
-		float posX = cos(2 * M_PI*i / particlesToSpawn) * radius + centerPosition.x;
-		float posY = sin(2 * M_PI*i /particlesToSpawn) * radius + centerPosition.y;
+		float posX = cos(2 * (float) M_PI*i / particlesToSpawn) * radius + centerPosition.x;
+		float posY = sin(2 * (float) M_PI*i /particlesToSpawn) * radius + centerPosition.y;
 
 		addParticle(posX, posY, true, sf::Color::Magenta);
 	}
@@ -252,7 +276,6 @@ void Solver::initializeBoundaryParticlesSquare()
 		addParticle(posX, maxY, true, sf::Color::Magenta);
 	}
 }
-
 
 void Solver::initializeLiquidParticles(sf::Vector2f initialPos, sf::Vector2f endPos)
 {
@@ -331,8 +354,8 @@ void Solver::initializeMovingParticlesCircle(float posX, float posY, float radiu
 
 	for (float i = 0; i < particlesToSpawn; i += 0.8f)
 	{
-		float spawnPosX = cos(2 * M_PI*i / particlesToSpawn) * radiusCircle + posX;
-		float spawnPosY = sin(2 * M_PI*i / particlesToSpawn) * radiusCircle + posY;
+		float spawnPosX = cos(2 * (float) M_PI*i / particlesToSpawn) * radiusCircle + posX;
+		float spawnPosY = sin(2 * (float) M_PI*i / particlesToSpawn) * radiusCircle + posY;
 
 		addParticle(spawnPosX, spawnPosY, true, sf::Color::Magenta, false, isMovable);
 	}

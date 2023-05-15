@@ -162,8 +162,11 @@ void Renderer::ProcessEvents()
 
 	while (m_window.pollEvent(event))
 	{
-		if (event.type == sf::Event::Closed)
+		if (event.type == sf::Event::Closed) 
+		{
+			//m_solver.closeFile();
 			m_window.close();
+		}
 
 		switch (event.type)
 		{
