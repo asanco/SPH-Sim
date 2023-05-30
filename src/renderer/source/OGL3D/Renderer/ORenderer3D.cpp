@@ -5,11 +5,9 @@
 #include <OGL3D/Graphics/OUniformBuffer.h>
 #include <OGL3D/Graphics/OGraphicsEngine.h>
 #include <OGL3D/Math/OMat4.h>
-#include <OGL3D/Math/OVec3.h>
-#include <OGL3D/Math/OVec2.h>
 #include <OGL3D/Entity/OEntitySystem.h>
 #include <OGL3D/Entity/OEntity.h>
-#include <cmath>
+#include <Windows.h>
 
 struct UniformData
 {
@@ -44,16 +42,16 @@ void ORenderer3D::onCreate()
 	OVec3 positionsList[] =
 	{
 		//front face
-		OVec3(-0.5f,-0.5f,-0.5f),
-		OVec3(-0.5f,0.5f,-0.5f),
-		OVec3(0.5f,0.5f,-0.5f),
-		OVec3(0.5f,-0.5f,-0.5f),
+		OVec3(-0.1f,-0.1f,-0.1f),
+		OVec3(-0.1f,0.1f,-0.1f),
+		OVec3(0.1f,0.1f,-0.1f),
+		OVec3(0.1f,-0.1f,-0.1f),
 
 		//back face
-		OVec3(0.5f,-0.5f,0.5f),
-		OVec3(0.5f,0.5f,0.5f),
-		OVec3(-0.5f,0.5f,0.5f),
-		OVec3(-0.5f,-0.5f,0.5f)
+		OVec3(0.1f,-0.1f,0.1f),
+		OVec3(0.1f,0.1f,0.1f),
+		OVec3(-0.1f,0.1f,0.1f),
+		OVec3(-0.1f,-0.1f,0.1f)
 	};
 
 
@@ -255,56 +253,30 @@ void ORenderer3D::onUpdateInternal()
 	m_display->present(false);
 }
 
-void ORenderer3D::onQuit()
+void ORenderer3D::checkInput()
 {
+	MSG msg = {};
+	if (PeekMessage(&msg, HWND(), NULL, NULL, PM_REMOVE))
+	{
+		if (msg.message == WM_QUIT)
+		{
+			m_isRunning = false;
+			return;
+		}
+		else
+		{
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
 }
 
-
-void ORenderer3D::quit()
+void ORenderer3D::run()
 {
-	m_isRunning = false;
+	onUpdateInternal();
 }
 
 OEntitySystem* ORenderer3D::getEntitySystem()
 {
 	return m_entitySystem.get();
-}
-
-constexpr f32 PI = 3.14159265359f;
-
-// Function to generate sphere geometry
-void ORenderer3D::generateSphere(std::vector<OVec3>& positions, std::vector<OVec2>& texcoords, std::vector<ui32>& indices, ui32 rings, ui32 sectors, f32 radius)
-{
-	f32 const R = 1.0f / static_cast<f32>(rings - 1);
-	f32 const S = 1.0f / static_cast<f32>(sectors - 1);
-
-	for (ui32 r = 0; r < rings; ++r)
-	{
-		for (ui32 s = 0; s < sectors; ++s)
-		{
-			f32 const y = std::sin(-0.5f * PI + PI * r * R);
-			f32 const x = std::cos(2 * PI * s * S) * std::sin(PI * r * R);
-			f32 const z = std::sin(2 * PI * s * S) * std::sin(PI * r * R);
-
-			positions.push_back(OVec3(x * radius, y * radius, z * radius));
-			texcoords.push_back(OVec2(s * S, r * R));
-		}
-	}
-
-	for (ui32 r = 0; r < rings - 1; ++r)
-	{
-		for (ui32 s = 0; s < sectors - 1; ++s)
-		{
-			ui32 const first = r * sectors + s;
-			ui32 const second = first + sectors;
-
-			indices.push_back(first);
-			indices.push_back(second + 1);
-			indices.push_back(second);
-
-			indices.push_back(first);
-			indices.push_back(first + 1);
-			indices.push_back(second + 1);
-		}
-	}
 }

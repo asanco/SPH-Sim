@@ -19,5 +19,5 @@ void main()
 	pos = pos * projection;
 
 	gl_Position = pos;
-	vertOutColor = vec3(texcoord.x,texcoord.y,0);
+	vertOutColor = vec3(texcoord.x,255 - texcoord.y, 255);
 }

@@ -17,6 +17,7 @@
 #include <bitset>
 #include <execution>
 #include <fstream>
+#include "../user/Sim.h"
 
 class Solver {
 

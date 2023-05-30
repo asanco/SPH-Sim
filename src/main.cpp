@@ -8,21 +8,12 @@ int main()
 {	
 	bool is3D = true;
 
-	if (is3D) {
-		try
-		{
-			Sim newSim;
-			std::cout << "Running 3D" << std::endl;
-			newSim.run();
-		}
-		catch (const std::exception& e)
-		{
-			std::cout << "Error: " << e.what() << std::endl;
-			return -1;
-		}
+	Sim newSim;
+	Solver solver;
 
-		return 0;
-	}
+	newSim.onCreate();
+	newSim.addParticle();
+	newSim.run();
 
 	sf::RenderWindow window = sf::RenderWindow(sf::VideoMode::getDesktopMode(), "SPH Solver", sf::Style::Default);
 	window.setFramerateLimit(60);
@@ -30,8 +21,6 @@ int main()
 	sf::RenderTexture render_tex;
 	render_tex.create(sf::VideoMode::getDesktopMode().width, sf::VideoMode::getDesktopMode().height);
 
-	Solver solver;
-	
 	Renderer renderer(window, render_tex, solver);
 
 	solver.initializeBoundaryParticlesSquare();
@@ -39,6 +28,8 @@ int main()
 	//2D Sim
 	while (window.isOpen())
 	{
+		newSim.checkInput();
+		newSim.run();
 		//Get keyboard inputs
 		renderer.ProcessEvents();
 		//Run one simulation loop

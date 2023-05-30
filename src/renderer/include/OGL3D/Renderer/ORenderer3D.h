@@ -17,15 +17,13 @@ public:
 	virtual ~ORenderer3D();
 
 	void run();
-	void quit();
+	void checkInput();
 
 	OEntitySystem* getEntitySystem();
-	void generateSphere(std::vector<OVec3>& positions, std::vector<OVec2>& texcoords, std::vector<ui32>& indices, ui32 rings, ui32 sectors, f32 radius);
 
 protected:
 	virtual void onCreate();
 	virtual void onUpdate(f32 deltaTime) {}
-	virtual void onQuit();
 private:
 	void onUpdateInternal();
 protected:
