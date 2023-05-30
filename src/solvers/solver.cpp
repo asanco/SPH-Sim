@@ -25,7 +25,7 @@ std::ofstream Solver::setupDataFile()
 
 	// Write the header row in the CSV file
 	simDataFile << 
-		"Sim Iteration,Pressure iteration, Density error average, Simulated Density Error,Actual Density Error,Predicted Velocity,Actual Velocity,Sim time" 
+		"Sim Iteration,Pressure iteration,Density error average,Simulated Density Error,Actual Density Error,Predicted Velocity,Actual Velocity,Sim time" 
 		<< std::endl;
 
 	return simDataFile;

@@ -1,11 +1,27 @@
 #include <SFML/Graphics.hpp>
 #include "solvers/solver.hpp"
 #include "renderer/renderer.hpp"
-#include "renderer//renderer3d.cpp"
+#include "user/Sim.h"
 #include <iostream>
 
 int main()
 {	
+	bool is3D = true;
+
+	if (is3D) {
+		try
+		{
+			Sim newSim;
+			std::cout << "Running 3D" << std::endl;
+			newSim.run();
+		}
+		catch (const std::exception& e)
+		{
+			std::cout << "Error: " << e.what() << std::endl;
+			return -1;
+		}
+	}
+
 	sf::RenderWindow window = sf::RenderWindow(sf::VideoMode::getDesktopMode(), "SPH Solver", sf::Style::Default);
 	window.setFramerateLimit(60);
 
@@ -13,10 +29,12 @@ int main()
 	render_tex.create(sf::VideoMode::getDesktopMode().width, sf::VideoMode::getDesktopMode().height);
 
 	Solver solver;
+	
 	Renderer renderer(window, render_tex, solver);
 
 	solver.initializeBoundaryParticlesSquare();
-	
+
+	//2D Sim
 	while (window.isOpen())
 	{
 		//Get keyboard inputs
@@ -25,7 +43,6 @@ int main()
 		solver.update();
 		//Render frame
 		renderer.RenderSimulation();
-		//renderer3d.render(spheres);
 	}
 
 	return 0;
