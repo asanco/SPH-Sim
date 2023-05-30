@@ -47,8 +47,6 @@ OGraphicsEngine::OGraphicsEngine()
 	int pixelFormat = ChoosePixelFormat(dummyDC, &pfd);
 	SetPixelFormat(dummyDC, pixelFormat, &pfd);
 
-
-
 	HGLRC dummyContext = wglCreateContext(dummyDC);
 	assert(dummyContext);
 

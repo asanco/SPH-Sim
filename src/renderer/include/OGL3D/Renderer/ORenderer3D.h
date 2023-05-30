@@ -1,8 +1,11 @@
 #pragma once
 
 #include <OGL3D/OPrerequisites.h>
+#include <OGL3D/Math/OVec3.h>
+#include <OGL3D/Math/OVec2.h>
 #include <memory>
 #include <chrono>
+#include <vector>
 
 class OGraphicsEngine;
 class OWindow;
@@ -17,6 +20,7 @@ public:
 	void quit();
 
 	OEntitySystem* getEntitySystem();
+	void generateSphere(std::vector<OVec3>& positions, std::vector<OVec2>& texcoords, std::vector<ui32>& indices, ui32 rings, ui32 sectors, f32 radius);
 
 protected:
 	virtual void onCreate();

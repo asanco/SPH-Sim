@@ -8,6 +8,8 @@
 #include <OGL3D/Math/OVec3.h>
 #include <OGL3D/Math/OVec2.h>
 #include <OGL3D/Entity/OEntitySystem.h>
+#include <OGL3D/Entity/OEntity.h>
+#include <cmath>
 
 struct UniformData
 {
@@ -185,8 +187,7 @@ void ORenderer3D::onUpdateInternal()
 	onUpdate(deltaTime);
 	m_entitySystem->update(deltaTime);
 
-	m_scale += 1.14f * deltaTime;
-	auto currentScale = abs(sin(m_scale));
+	m_scale = 1.f;
 
 	OMat4 world, projection, temp;
 
@@ -213,7 +214,6 @@ void ORenderer3D::onUpdateInternal()
 	auto displaySize = m_display->getInnerSize();
 	projection.setOrthoLH(displaySize.width * 0.004f, displaySize.height * 0.004f, 0.01f, 100.0f);
 
-
 	UniformData data = { world , projection };
 	m_uniform->setData(&data);
 
@@ -224,7 +224,33 @@ void ORenderer3D::onUpdateInternal()
 	m_graphicsEngine->setVertexArrayObject(m_polygonVAO);
 	m_graphicsEngine->setUniformBuffer(m_uniform, 0);
 	m_graphicsEngine->setShaderProgram(m_shader);
-	m_graphicsEngine->drawIndexedTriangles(OTriangleType::TriangleList, 36);
+
+	for (auto&[key, entities] : m_entitySystem->m_entities) {
+		for (auto&[key, entity] : entities)
+		{
+			if (auto e = dynamic_cast<OEntity*>(entity.get()))
+			{
+				OMat4 entityWorld = world;
+
+				// Set the position of the entity in world space
+				OVec3 position = e->getPosition();
+				entityWorld.setTranslation(position);
+
+				// Apply any other transformations specific to the entity
+				// Modify 'entityWorld' matrix accordingly based on the entity's rotation and scale
+
+				UniformData data = { entityWorld, projection };
+				m_uniform->setData(&data);
+
+				// Draw the entity using the modified 'entityWorld' matrix
+				m_graphicsEngine->drawIndexedTriangles(OTriangleType::TriangleList, 36);
+			}
+			else 
+			{
+				break;
+			}
+		}
+	}
 
 	m_display->present(false);
 }
@@ -242,4 +268,43 @@ void ORenderer3D::quit()
 OEntitySystem* ORenderer3D::getEntitySystem()
 {
 	return m_entitySystem.get();
+}
+
+constexpr f32 PI = 3.14159265359f;
+
+// Function to generate sphere geometry
+void ORenderer3D::generateSphere(std::vector<OVec3>& positions, std::vector<OVec2>& texcoords, std::vector<ui32>& indices, ui32 rings, ui32 sectors, f32 radius)
+{
+	f32 const R = 1.0f / static_cast<f32>(rings - 1);
+	f32 const S = 1.0f / static_cast<f32>(sectors - 1);
+
+	for (ui32 r = 0; r < rings; ++r)
+	{
+		for (ui32 s = 0; s < sectors; ++s)
+		{
+			f32 const y = std::sin(-0.5f * PI + PI * r * R);
+			f32 const x = std::cos(2 * PI * s * S) * std::sin(PI * r * R);
+			f32 const z = std::sin(2 * PI * s * S) * std::sin(PI * r * R);
+
+			positions.push_back(OVec3(x * radius, y * radius, z * radius));
+			texcoords.push_back(OVec2(s * S, r * R));
+		}
+	}
+
+	for (ui32 r = 0; r < rings - 1; ++r)
+	{
+		for (ui32 s = 0; s < sectors - 1; ++s)
+		{
+			ui32 const first = r * sectors + s;
+			ui32 const second = first + sectors;
+
+			indices.push_back(first);
+			indices.push_back(second + 1);
+			indices.push_back(second);
+
+			indices.push_back(first);
+			indices.push_back(first + 1);
+			indices.push_back(second + 1);
+		}
+	}
 }

@@ -20,6 +20,8 @@ int main()
 			std::cout << "Error: " << e.what() << std::endl;
 			return -1;
 		}
+
+		return 0;
 	}
 
 	sf::RenderWindow window = sf::RenderWindow(sf::VideoMode::getDesktopMode(), "SPH Solver", sf::Style::Default);

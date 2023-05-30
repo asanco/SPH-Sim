@@ -37,7 +37,7 @@ OWindow::OWindow()
 	auto classId = RegisterClassEx(&wc);
 	assert(classId);
 
-	RECT rc = { 0,0,1024,768 };
+	RECT rc = { 0,0,1280,768 };
 	AdjustWindowRect(&rc, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, false);
 
 	m_handle = CreateWindowEx(NULL, MAKEINTATOM(classId), "SPH 3D Sim", WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT,

@@ -1,5 +1,6 @@
 #pragma once
 #include <OGL3D/OPrerequisites.h>
+#include <OGL3D/Math/OVec3.h>
 
 class OEntitySystem;
 class OEntity
@@ -9,6 +10,8 @@ public:
 	virtual ~OEntity();
 
 	void release();
+	OVec3 getPosition();
+	void setPosition(OVec3 newPos);
 
 	OEntitySystem* getEntitySystem();
 protected:
@@ -20,4 +23,6 @@ protected:
 	OEntitySystem* m_entitySystem = nullptr;
 
 	friend class OEntitySystem;
+private:
+	OVec3 entityPosition;
 };

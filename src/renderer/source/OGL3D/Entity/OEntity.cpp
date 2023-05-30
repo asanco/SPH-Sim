@@ -9,6 +9,16 @@ OEntity::~OEntity()
 {
 }
 
+void OEntity::setPosition(OVec3 newPos)
+{
+	entityPosition = newPos;
+}
+
+OVec3 OEntity::getPosition() 
+{
+	return entityPosition;
+}
+
 void OEntity::release()
 {
 	m_entitySystem->removeEntity(this);
