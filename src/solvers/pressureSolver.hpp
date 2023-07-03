@@ -12,7 +12,7 @@ public:
 	void compute() override;
 
 private:
-	int MIN_ITERATIONS = 10;
+	int MIN_ITERATIONS = 2;
 	int *numFluidParticles;
 
 	float gamma = 1.f;

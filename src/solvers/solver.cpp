@@ -8,7 +8,7 @@
 #include <execution>
 
 Solver::Solver()
-	: centerPosition({ 600.0f, 350.0f }),
+	: centerPosition({ 3000.0f, 0.0f }),
 	particles({}),
 	simDataFile(setupDataFile())
 {
@@ -16,6 +16,8 @@ Solver::Solver()
 	solvers.push_back(std::move(std::make_shared<PressureSolver>(&particles, &numFluidParticles, &dt, &simDataFile)));
 	clock.restart();
 	simTimeClock.restart();
+	pressureClock.restart();
+	neighborClock.restart();
 }
 
 std::ofstream Solver::setupDataFile()
@@ -25,7 +27,7 @@ std::ofstream Solver::setupDataFile()
 
 	// Write the header row in the CSV file
 	simDataFile << 
-		"Sim Iteration,Pressure iteration,Density error average,Simulated Density Error,Actual Density Error,Predicted Velocity,Actual Velocity,Sim time" 
+		"Sim Iteration,Neighbor Search time,Pressure iteration,Density error average,Predicted density error average,Predicted velocity,Actual velocity,Pressure Solver time,Physics sim time, Render time" 
 		<< std::endl;
 
 	return simDataFile;
@@ -38,20 +40,26 @@ void Solver::closeFile()
 
 void Solver::update()
 {
-	if (!stepUpdate && !updating) updating = true;
+	//if (!stepUpdate && !updating) updating = true;
 	if (!updating) return;
 
 	iteration++;
 	simDataFile << iteration;
 
+	simTimeClock.restart();
+
 	//Neighbor search
+	neighborClock.restart();
 	solvers.at(0)->compute();
+	simDataFile << "," << neighborClock.getElapsedTime().asMilliseconds();
 	//Density calculation
 	computeDensity();
 	//Non pressure acceleration and predicted velocity calculation
 	computeNonPressureForces();
 	//Pressure solver
+	pressureClock.restart();
 	solvers.at(1)->compute();
+	simDataFile << "," << pressureClock.getElapsedTime().asMilliseconds();
 	//Pressure acceleration
 	applyPressureForce();
 	//Time integration
@@ -62,7 +70,7 @@ void Solver::update()
 		moveDirection *= -1;
 	}
 
-	simDataFile << "," << simTimeClock.getElapsedTime().asMilliseconds() << std::endl;
+	simDataFile << "," << simTimeClock.getElapsedTime().asMilliseconds();
 
 	if (stepUpdate) updating = false;
 }
@@ -126,9 +134,12 @@ void Solver::computeDensity()
 				float distance = distanceVector.length();
 
 				sphDensity += pj->mass * kernelFunction(distance);
+
+				//pj->pressure = pi->pressure;
 			}
 			
 			pi->density = sphDensity;
+			//pi->pressure = std::max(STIFFNESS * (sphDensity - 1.0f), 0.f);
 			pi->updateVolume();
 		});
 }
@@ -218,6 +229,7 @@ void Solver::updatePositions()
 
 	if (maxVelocity < 1) maxVelocity = PARTICLE_SPACING;
 	//dt = CFL * (PARTICLE_SPACING/maxVelocity);
+	dtSum += dt;
 }
 
 //Slide 11
@@ -246,12 +258,12 @@ void Solver::initializeBoundaryParticles()
 	float circumference = 2 * (float) M_PI * radius;
 	float particlesToSpawn = circumference / PARTICLE_SPACING;
 
-	for (float i = 0; i < particlesToSpawn; i += 0.75f)
+	for (float i = 0; i < particlesToSpawn; i += 0.5f)
 	{
 		float posX = cos(2 * (float) M_PI*i / particlesToSpawn) * radius + centerPosition.x;
 		float posY = sin(2 * (float) M_PI*i /particlesToSpawn) * radius + centerPosition.y;
 
-		addParticle(posX, posY, true, sf::Color::Magenta);
+		addParticle(posX, posY, true, sf::Color::Red);
 	}
 }
 
@@ -270,10 +282,10 @@ void Solver::initializeBoundaryParticlesSquare()
 		float posX = i * sideLength / particlesToAdd + minX;
 		float posY = i * sideLength / particlesToAdd + minY;
 
-		addParticle(posX, minY, true, sf::Color::Magenta);
-		addParticle(minX, posY, true, sf::Color::Magenta);
-		addParticle(maxX, posY, true, sf::Color::Magenta);
-		addParticle(posX, maxY, true, sf::Color::Magenta);
+		addParticle(posX, minY, true, sf::Color::Red);
+		addParticle(minX, posY, true, sf::Color::Red);
+		addParticle(maxX, posY, true, sf::Color::Red);
+		addParticle(posX, maxY, true, sf::Color::Red);
 	}
 }
 
@@ -302,19 +314,19 @@ void Solver::initializeLiquidParticles(sf::Vector2f initialPos, sf::Vector2f end
 
 void Solver::initializeLiquidParticles(int initialParticles)
 {
-	float minXPos = (centerPosition.x - radius) + PARTICLE_SPACING;
-	float minYPos = centerPosition.y - 50;
+	float minXPos = centerPosition.x - 7 * radius /8;
+	float minYPos = centerPosition.y + radius - PARTICLE_SPACING * 4;
 	float xPosition = minXPos;
 	float yPosition = minYPos;
 
 	for (int i = 0; i < initialParticles; i++)
 	{
 		addParticle(xPosition, yPosition, false, sf::Color::Blue);
-		if (xPosition - minXPos < 150) xPosition += PARTICLE_SPACING;
+		if (xPosition < centerPosition.x + radius/8) xPosition += PARTICLE_SPACING;
 		else
 		{
 			xPosition = minXPos;
-			yPosition += PARTICLE_SPACING;
+			yPosition -= PARTICLE_SPACING;
 		}
 	}
 }
@@ -357,13 +369,13 @@ void Solver::initializeMovingParticlesCircle(float posX, float posY, float radiu
 		float spawnPosX = cos(2 * (float) M_PI*i / particlesToSpawn) * radiusCircle + posX;
 		float spawnPosY = sin(2 * (float) M_PI*i / particlesToSpawn) * radiusCircle + posY;
 
-		addParticle(spawnPosX, spawnPosY, true, sf::Color::Magenta, false, isMovable);
+		addParticle(spawnPosX, spawnPosY, true, sf::Color::Red, false, isMovable);
 	}
 }
 
 void Solver::handleAddWall(float positionX, float positionY, bool isMovable)
 {
-	if(!isMovable) addParticle(positionX, positionY, true, sf::Color::Magenta, false, isMovable);
+	if(!isMovable) addParticle(positionX, positionY, true, sf::Color::Red, false, isMovable);
 
 	if (initialWallPoint.x == -1.f)
 	{
@@ -381,7 +393,7 @@ void Solver::handleAddWall(float positionX, float positionY, bool isMovable)
 			float posX = i * wallVector.x / particlesToAdd + initialWallPoint.x;
 			float posY = i * wallVector.y / particlesToAdd + initialWallPoint.y;
 
-			addParticle(posX, posY, true, sf::Color::Magenta, false, isMovable);
+			addParticle(posX, posY, true, sf::Color::Red, false, isMovable);
 		}
 
 		initialWallPoint = { -1.f, -1.f };

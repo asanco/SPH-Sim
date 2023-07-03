@@ -3,6 +3,7 @@
 #include <OGL3D/OPrerequisites.h>
 #include <OGL3D/Math/OVec3.h>
 #include <OGL3D/Math/OVec2.h>
+#include "../../solvers/solver.hpp"
 #include <memory>
 #include <chrono>
 #include <vector>
@@ -13,16 +14,16 @@ class OEntitySystem;
 class ORenderer3D
 {
 public:
-	ORenderer3D();
+	ORenderer3D(Solver& _solver);
 	virtual ~ORenderer3D();
 
 	void run();
 	void checkInput();
+	void onCreate();
 
 	OEntitySystem* getEntitySystem();
 
 protected:
-	virtual void onCreate();
 	virtual void onUpdate(f32 deltaTime) {}
 private:
 	void onUpdateInternal();
@@ -43,4 +44,6 @@ protected:
 
 	std::chrono::system_clock::time_point m_previousTime;
 	f32 m_scale = -3;
+private:
+	Solver& m_solver;
 };

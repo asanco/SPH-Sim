@@ -14,14 +14,14 @@ PressureSolver::PressureSolver(std::vector<std::shared_ptr<Particle>> *_particle
 
 void PressureSolver::compute() {
 	
-	float currentParticlePredictedDensityError = 0.f;
+	float predictedDensityErrorAvg = 0.f;
 
 	//Initialization
 	std::for_each(
 		std::execution::par,
 		particles->begin(),
 		particles->end(),
-		[this, &currentParticlePredictedDensityError](auto&& p)
+		[this, &predictedDensityErrorAvg](auto&& p)
 		{
 			if (p->isBoundary) return;
 			
@@ -32,20 +32,50 @@ void PressureSolver::compute() {
 			p->diagonalElement = diagonalElement;
 			p->pressure = 0.f;
 
-			if (p->theOne) currentParticlePredictedDensityError = sourceTerm;
+			predictedDensityErrorAvg += sourceTerm;
 		});
 
 	
 	//Iteration l
 	float densityErrorAvg = INFINITY;
-	float currentParticleDensityError = 0.f;
 	up::Vec2 currentParticlePredictedVelocity;
 	up::Vec2 currentParticleVelocity;
 
 	numIterations = 0;
+	
+	/*
+	std::for_each(
+		std::execution::par,
+		particles->begin(),
+		particles->end(),
+		[this, &densityErrorAvg, &predictedDensityErrorAvg](auto&& p)
+		{
+			if (p->isBoundary) return;
 
+			up::Vec2 fpressure(0.f, 0.f);
+
+			for (auto &pj : p->neighbors)
+			{
+				up::Vec2 distanceVector = p->position_current - pj->position_current;
+
+				// Compute pressure force contribution
+				fpressure -= (p->pressure / pow(p->density, 2) + pj->pressure / pow(pj->density, 2)) * kernelGradient(distanceVector);
+			}
+
+			for (auto &pj : p->neighborsBoundary)
+			{
+				up::Vec2 distanceVector = p->position_current - pj->position_current;
+
+				// Compute pressure force contribution
+				fpressure -= (p->pressure / pow(p->density, 2) + pj->pressure / pow(pj->density, 2)) * kernelGradient(distanceVector);
+			}
+
+			p->pressureAcceleration = fpressure;
+		});
+	*/
+	
 	//Set min densityErrorAvg to break loop
-	//Define min number of iterations
+	//Define min number of iterations	
 	while (densityErrorAvg > 0.001f || numIterations < MIN_ITERATIONS) 
 	{
 		densityErrorAvg = 0.f;
@@ -67,7 +97,7 @@ void PressureSolver::compute() {
 			std::execution::par,
 			particles->begin(),
 			particles->end(),
-			[this, &densityErrorAvg, &currentParticlePredictedVelocity, &currentParticleVelocity, &currentParticleDensityError](auto&& p)
+			[this, &densityErrorAvg, &currentParticlePredictedVelocity, &currentParticleVelocity](auto&& p)
 			{
 				p->negVelocityDivergence = computeDivergence(p);
 
@@ -81,19 +111,19 @@ void PressureSolver::compute() {
 
 				if (p->theOne) {
 					currentParticlePredictedVelocity = p->predictedVelocity;
-					currentParticleVelocity = p->velocity;
-					currentParticleDensityError = predictedDensityError;
-				}
+					currentParticleVelocity = p->velocity;				}
 			});
 
 		//Divide by rest density of fluid to normalize the change of volume
 		densityErrorAvg /= PARTICLE_REST_DENSITY;
 		densityErrorAvg /= *numFluidParticles;
+		predictedDensityErrorAvg /= *numFluidParticles;
 		numIterations++;
 	}
-	*simDataFile << "," << numIterations << "," << densityErrorAvg 
-		<< "," << currentParticlePredictedDensityError << "," << currentParticleDensityError
-		<< "," << currentParticlePredictedVelocity.length() << "," << currentParticleVelocity.length();
+	
+
+	*simDataFile << "," << numIterations << "," << densityErrorAvg 	<< "," << predictedDensityErrorAvg << 
+		"," << currentParticlePredictedVelocity.length() << "," << currentParticleVelocity.length();
 }
 
 //Check boundary contribution

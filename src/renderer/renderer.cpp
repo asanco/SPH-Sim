@@ -12,22 +12,33 @@ Renderer::Renderer(sf::RenderWindow & window, sf::RenderTarget & target, Solver 
 	m_target(target),
 	m_solver(solver)
 {
-	sf::Texture nCapturedFrameTexture;
-	nCapturedFrameTexture.create(m_target.getSize().x, m_target.getSize().y);
-	
+	renderClock.restart();
+
 	view = sf::View(sf::FloatRect(0, 0, m_window.getSize().x, m_window.getSize().y));
 	view.zoom(1.0f);
 
-	sf::RectangleShape nBackground_outer(sf::Vector2f((float) m_target.getSize().x, (float) m_target.getSize().y));
+	sf::Texture nCapturedFrameTexture;
+	nCapturedFrameTexture.create(view.getSize().x, view.getSize().y);
+
+	sf::RectangleShape nBackground_outer(sf::Vector2f(m_solver.radius * 5, m_solver.radius * 5));
 	nBackground_outer.setFillColor(sf::Color::White);
+	nBackground_outer.setOrigin(m_solver.radius * 2.5f, m_solver.centerPosition.y * 2.5f);
+	nBackground_outer.setPosition(m_solver.centerPosition.x, m_solver.centerPosition.y);
+
+	sf::Color simBgColor;
+	simBgColor.r = 220;
+	simBgColor.g = 220;
+	simBgColor.b = 220;
 
 	sf::CircleShape nBackground_inner(m_solver.radius);
-	nBackground_inner.setFillColor(sf::Color::Black);
-	nBackground_inner.setPosition(sf::Vector2f(m_solver.centerPosition.x - m_solver.radius, m_solver.centerPosition.y - m_solver.radius));
+	nBackground_inner.setFillColor(simBgColor);
+	nBackground_inner.setOrigin(m_solver.radius, m_solver.radius);
+	nBackground_inner.setPosition(sf::Vector2f(m_solver.centerPosition.x, m_solver.centerPosition.y));
 
 	sf::RectangleShape nBackground_inner_square(sf::Vector2f(m_solver.radius * 2, m_solver.radius * 2));
-	nBackground_inner_square.setFillColor(sf::Color::Black);
-	nBackground_inner_square.setPosition(sf::Vector2f(m_solver.centerPosition.x - m_solver.radius, m_solver.centerPosition.y - m_solver.radius));
+	nBackground_inner_square.setFillColor(simBgColor);
+	nBackground_inner_square.setOrigin(m_solver.radius, m_solver.radius);
+	nBackground_inner_square.setPosition(m_solver.centerPosition.x, m_solver.centerPosition.y);
 
 	sf::Font nFont;
 	if (!nFont.loadFromFile("../res/font.ttf")) std::cout << "Error loading font" << std::endl;
@@ -41,6 +52,8 @@ Renderer::Renderer(sf::RenderWindow & window, sf::RenderTarget & target, Solver 
 }
 
 void Renderer::RenderSimulation() {
+	renderClock.restart();
+
 	m_window.clear();
 
 	m_window.draw(background_outer);
@@ -48,18 +61,19 @@ void Renderer::RenderSimulation() {
 
 	sf::Text text;
 	text.setFont(font);
-	text.setCharacterSize(16);
+	text.setCharacterSize(92);
 	text.setFillColor(sf::Color::Black);
-	text.move(sf::Vector2f(20.0f, 20.f));
+	text.move(sf::Vector2f(-2000.0f, -1000.f));
 
 	std::string isUpdatingText = m_solver.updating ? "true" : "false";
 	std::string screenText = "Number of fluid particles: " + std::to_string(m_solver.numFluidParticles);
 	screenText.append("\nTotal number of particles:" + std::to_string(m_solver.particles.size()));
 	screenText.append("\nNumber of iterations:" + std::to_string( m_solver.solvers.at(1)->numIterations ) );
 	screenText.append("\nTime step: " + std::to_string(m_solver.dt));
+	screenText.append("\nTime: " + std::to_string(m_solver.dtSum));
 	screenText.append("\nUpdating: " + isUpdatingText);
 
-	if (holdingClick) PreviewParticles();
+	if (holdingClick) PreviewParticles(screenText);
 	RenderParticles(screenText);
 
 	text.setString(screenText);
@@ -68,6 +82,8 @@ void Renderer::RenderSimulation() {
 	m_window.setView(view);
 	m_window.display();
 
+	if(m_solver.updating) m_solver.simDataFile << "," << renderClock.getElapsedTime().asMilliseconds() << std::endl;
+
 	if (isRecording) {
 		handleTakeScreenShot();
 	}
@@ -75,9 +91,13 @@ void Renderer::RenderSimulation() {
 
 void Renderer::handleTakeScreenShot()
 {
-	capturedFrameTexture.update(m_window);
+	//capturedFrameTexture.update(m_window);
 	if (frameNumber % 10 == 0) {
-		sf::Image capturedFrame = capturedFrameTexture.copyToImage();
+		sf::Texture texture;
+		texture.create(m_window.getSize().x, m_window.getSize().y);
+		texture.update(m_window);
+
+		sf::Image capturedFrame = texture.copyToImage();
 		capturedFrame.saveToFile("../sequence/frame" + std::to_string(frameId) + ".png");
 		frameId++;
 	}
@@ -85,9 +105,12 @@ void Renderer::handleTakeScreenShot()
 }
 
 void Renderer::RenderParticles(std::string &screenText) {
+	float particleDim = m_solver.PARTICLE_SPACING;
+
 	for (auto & p : m_solver.particles)
 	{
-		sf::CircleShape shape(p->radius);
+		sf::RectangleShape shape(sf::Vector2f(particleDim, particleDim));
+		shape.setOrigin(p->radius, p->radius);
 
 		if (p->isBoundary) {
 			shape.setFillColor(p->color);
@@ -96,12 +119,12 @@ void Renderer::RenderParticles(std::string &screenText) {
 			float maxPressureValue = 2000.f;
 			float particlePressure = p->pressureAcceleration.length() > maxPressureValue ? maxPressureValue : p->pressureAcceleration.length();
 			sf::Color pressureColor = sf::Color((int)(particlePressure / maxPressureValue * 255), (int)(particlePressure / maxPressureValue * 255), 255, 255);
-			shape.setFillColor(pressureColor);
+			shape.setFillColor(sf::Color::Blue);
 		}
 
-		shape.setPosition(p->position_current.x - p->radius, p->position_current.y - p->radius);
+		shape.setPosition(p->position_current.x, p->position_current.y);
 
-		if (p->isTheOneNeighbor) shape.setFillColor(sf::Color::Red);
+		if (p->isTheOneNeighbor) shape.setFillColor(sf::Color::Magenta);
 		else if (p->theOne) shape.setFillColor(sf::Color::Green);
 
 		m_window.draw(shape);
@@ -128,7 +151,7 @@ void Renderer::RenderParticles(std::string &screenText) {
 	}
 }
 
-void Renderer::PreviewParticles()
+void Renderer::PreviewParticles(std::string &screenText)
 {
 	float spacing = m_solver.PARTICLE_SPACING;
 	sf::CircleShape shape(spacing /2);
@@ -140,11 +163,14 @@ void Renderer::PreviewParticles()
 	float currentX = minX;
 	float currentY = minY;
 
+	int numParticles = 0;
+
 	while (currentY <= maxY)
 	{
 		shape.setPosition(currentX, currentY);
-		shape.setFillColor(sf::Color::White);
+		shape.setFillColor(sf::Color::Yellow);
 		m_window.draw(shape);
+		numParticles++;
 
 		currentX += spacing;
 
@@ -153,6 +179,7 @@ void Renderer::PreviewParticles()
 			currentX = minX ;
 		}
 	}
+	screenText.append("\nPreviewed particles:" + std::to_string(numParticles));
 }
 
 void Renderer::ProcessEvents()
@@ -174,7 +201,7 @@ void Renderer::ProcessEvents()
 			if (event.key.code == sf::Keyboard::A) m_solver.addParticle((float)trueMousePos.x, (float)trueMousePos.y, false, sf::Color::Blue);
 			else if (event.key.code == sf::Keyboard::U) m_solver.updating = !m_solver.updating;
 			else if (event.key.code == sf::Keyboard::O) isRecording = !isRecording;
-			else if (event.key.code == sf::Keyboard::N) m_solver.initializeLiquidParticles(2000);
+			else if (event.key.code == sf::Keyboard::N) m_solver.initializeLiquidParticles(500000);
 			else if (event.key.code == sf::Keyboard::M) m_solver.initializeLiquidParticles();
 			else if (event.key.code == sf::Keyboard::I) showInfo = !showInfo;
 			else if (event.key.code == sf::Keyboard::R) {
@@ -182,10 +209,10 @@ void Renderer::ProcessEvents()
 				m_solver.numFluidParticles = 0;
 				m_solver.initializeBoundaryParticlesSquare();
 			}
-			else if (event.key.code == sf::Keyboard::Right) view.move(sf::Vector2(5.f, 0.f));
-			else if (event.key.code == sf::Keyboard::Left) view.move(sf::Vector2(-5.f, 0.f));
-			else if (event.key.code == sf::Keyboard::Up) view.move(sf::Vector2(0.f, -5.f));
-			else if (event.key.code == sf::Keyboard::Down) view.move(sf::Vector2(0.f, 5.f));
+			else if (event.key.code == sf::Keyboard::Right) view.move(sf::Vector2(50.f, 0.f));
+			else if (event.key.code == sf::Keyboard::Left) view.move(sf::Vector2(-50.f, 0.f));
+			else if (event.key.code == sf::Keyboard::Up) view.move(sf::Vector2(0.f, -50.f));
+			else if (event.key.code == sf::Keyboard::Down) view.move(sf::Vector2(0.f, 50.f));
 			else if (event.key.code == sf::Keyboard::Space) m_solver.stepUpdate = !m_solver.stepUpdate;
 			else if (event.key.code == sf::Keyboard::Tab) m_solver.moveDirection = -m_solver.moveDirection;
 			else if (event.key.code == sf::Keyboard::W) m_solver.handleAddWall((float)trueMousePos.x, (float)trueMousePos.y);

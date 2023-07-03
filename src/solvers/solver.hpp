@@ -17,7 +17,6 @@
 #include <bitset>
 #include <execution>
 #include <fstream>
-#include "../user/Sim.h"
 
 class Solver {
 
@@ -26,18 +25,20 @@ public:
 	
 	std::ofstream simDataFile;
 
-	//Solver constant parameters
-	bool updating = true;
+	bool updating = false;
 	bool stepUpdate = false;
 
-	static constexpr float PARTICLE_SPACING = 5.f;
-	static constexpr float KERNEL_SUPPORT = 10.f;
+	//Solver constant parameters
+	//5 - 10 or 6 - 12
+	static constexpr float PARTICLE_SPACING = 6.f;
+	static constexpr float KERNEL_SUPPORT = 12.f;
 	static constexpr float VISCOSITY = 0.f;
 	static constexpr float SIM_WIDTH = 1200.f;
 	static constexpr float SIM_HEIGHT = 700.f;
 	static constexpr int DIMENSION = 2;
+	float STIFFNESS = 1000000.f;
 
-	static constexpr float radius = 300.0f;
+	static constexpr float radius = 1000.0f;
 
 	int numFluidParticles = 0;
 	up::Vec2 centerPosition;
@@ -49,6 +50,7 @@ public:
 	std::vector<std::shared_ptr <SolverBase>> solvers;
 
 	float dt = 0.01f;
+	float dtSum = 0.f;
 	int moveDirection = 1;
 
 	std::ofstream setupDataFile();
@@ -77,6 +79,8 @@ private:
 	float maxVelocity = 0.f;
 	float ALPHA = 5.f / (14.f * (float) M_PI * PARTICLE_SPACING * PARTICLE_SPACING);
 	sf::Clock clock;
+	sf::Clock pressureClock;
 	sf::Clock simTimeClock;
+	sf::Clock neighborClock;
 	int iteration = 0;
 };

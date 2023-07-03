@@ -16,7 +16,7 @@ public:
 	void ProcessEvents();
 	void handleTakeScreenShot();
 	void RenderParticles(std::string &screenText);
-	void PreviewParticles();
+	void PreviewParticles(std::string &screenText);
 private:
 	int frameNumber;
 	int frameId;
@@ -34,4 +34,6 @@ private:
 	sf::RectangleShape background_inner_square;
 	sf::Texture capturedFrameTexture;
 	sf::Vector2f initialPreviewPosition;
+
+	sf::Clock renderClock;
 };

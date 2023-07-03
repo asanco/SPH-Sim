@@ -22,7 +22,7 @@ struct Vertex
 };
 
 
-ORenderer3D::ORenderer3D()
+ORenderer3D::ORenderer3D(Solver& _solver): m_solver(_solver)
 {
 	m_graphicsEngine = std::make_unique<OGraphicsEngine>();
 	m_display = std::make_unique<OWindow>();
@@ -42,16 +42,16 @@ void ORenderer3D::onCreate()
 	OVec3 positionsList[] =
 	{
 		//front face
-		OVec3(-0.1f,-0.1f,-0.1f),
-		OVec3(-0.1f,0.1f,-0.1f),
-		OVec3(0.1f,0.1f,-0.1f),
-		OVec3(0.1f,-0.1f,-0.1f),
+		OVec3(-0.01f,-0.01f,-0.01f),
+		OVec3(-0.01f,0.01f,-0.01f),
+		OVec3(0.01f,0.01f,-0.01f),
+		OVec3(0.01f,-0.01f,-0.01f),
 
 		//back face
-		OVec3(0.1f,-0.1f,0.1f),
-		OVec3(0.1f,0.1f,0.1f),
-		OVec3(-0.1f,0.1f,0.1f),
-		OVec3(-0.1f,-0.1f,0.1f)
+		OVec3(0.01f,-0.01f,0.01f),
+		OVec3(0.01f,0.01f,0.01f),
+		OVec3(-0.01f,0.01f,0.01f),
+		OVec3(-0.01f,-0.01f,0.01f)
 	};
 
 
@@ -210,7 +210,9 @@ void ORenderer3D::onUpdateInternal()
 	world *= temp;
 
 	auto displaySize = m_display->getInnerSize();
-	projection.setOrthoLH(displaySize.width * 0.004f, displaySize.height * 0.004f, 0.01f, 100.0f);
+	projection.setOrthoLH(displaySize.width * 0.004f, displaySize.height * 0.008f, 0.01f, 100.0f);
+	projection.setRotationX(180);
+	projection.setRotationY(0.1);
 
 	UniformData data = { world , projection };
 	m_uniform->setData(&data);
@@ -223,31 +225,18 @@ void ORenderer3D::onUpdateInternal()
 	m_graphicsEngine->setUniformBuffer(m_uniform, 0);
 	m_graphicsEngine->setShaderProgram(m_shader);
 
-	for (auto&[key, entities] : m_entitySystem->m_entities) {
-		for (auto&[key, entity] : entities)
-		{
-			if (auto e = dynamic_cast<OEntity*>(entity.get()))
-			{
-				OMat4 entityWorld = world;
+	for (auto & p : m_solver.particles)
+	{
+		OMat4 entityWorld = world;
 
-				// Set the position of the entity in world space
-				OVec3 position = e->getPosition();
-				entityWorld.setTranslation(position);
+		OVec3 position = { p->position_current.x/200 - 3, p->position_current.y/200 - 2.1f, 0.f };
+		entityWorld.setTranslation(position);
 
-				// Apply any other transformations specific to the entity
-				// Modify 'entityWorld' matrix accordingly based on the entity's rotation and scale
+		UniformData data = { entityWorld, projection };
+		m_uniform->setData(&data);
 
-				UniformData data = { entityWorld, projection };
-				m_uniform->setData(&data);
-
-				// Draw the entity using the modified 'entityWorld' matrix
-				m_graphicsEngine->drawIndexedTriangles(OTriangleType::TriangleList, 36);
-			}
-			else 
-			{
-				break;
-			}
-		}
+		// Draw the entity using the modified 'entityWorld' matrix
+		m_graphicsEngine->drawIndexedTriangles(OTriangleType::TriangleList, 36);
 	}
 
 	m_display->present(false);
